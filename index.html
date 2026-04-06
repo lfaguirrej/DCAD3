@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DCAD - AR Edge Projection</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Floating UI Wrapper for WebXR dom-overlay compatibility -->
+        <div id="ui-wrapper">
+            <div class="overlay glass" id="main-header">
+                <h1>DCAD | AR Projection</h1>
+                <p>Proyecta bordes de objetos CAD en la realidad.</p>
+            </div>
+
+            <!-- Floating UI Toggles -->
+            <button id="refresh-btn" class="fab-btn refresh" title="Recargar App">
+                <span class="icon">↻</span>
+            </button>
+            <button id="menu-toggle" class="fab-btn">
+                <span class="icon">☰</span>
+            </button>
+
+            <div id="ui-container">
+            <!-- Controles Específicos de AR -->
+            <div id="ar-controls" class="ar-only-controls">
+                <button id="ar-toggle-ui-btn" class="ar-btn">📂 Panel</button>
+                <button id="ar-exit-btn" class="ar-btn exit">🚪 Salir</button>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="tabs-nav">
+                <button class="tab-btn active" data-tab="tab-adjust">🎮 Ajuste</button>
+                <button class="tab-btn" data-tab="tab-align">📍 Alineación</button>
+                <button class="tab-btn" data-tab="tab-models">📦 Modelos</button>
+                <button class="tab-btn" data-tab="tab-create">➕ Crear</button>
+                <button class="tab-btn" data-tab="tab-console">💾</button>
+            </div>
+
+            <!-- Tab Contents -->
+            <div id="tab-adjust" class="tab-panel active">
+                <div class="glass adjustment-panel" id="adj-panel">
+                    <div class="panel-header">
+                        <h2>Ajuste de Alineación</h2>
+                        <label class="switch">
+                            <input type="checkbox" id="panel-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div id="panel-controls">
+                        <div class="control-row">
+                            <span>Posición (X, Y, Z):</span>
+                            <div class="nudge-group">
+                                <button class="nudge-btn" data-axis="x" data-dir="1">X+</button>
+                                <button class="nudge-btn" data-axis="x" data-dir="-1">X-</button>
+                                <button class="nudge-btn" data-axis="y" data-dir="1">Y+</button>
+                                <button class="nudge-btn" data-axis="y" data-dir="-1">Y-</button>
+                                <button class="nudge-btn" data-axis="z" data-dir="1">Z+</button>
+                                <button class="nudge-btn" data-axis="z" data-dir="-1">Z-</button>
+                            </div>
+                        </div>
+                        <div class="control-row">
+                            <span>Rotación (X, Y, Z):</span>
+                            <div class="nudge-group">
+                                <button class="nudge-btn" data-axis="rx" data-dir="1">RX+</button>
+                                <button class="nudge-btn" data-axis="rx" data-dir="-1">RX-</button>
+                                <button class="nudge-btn" data-axis="ry" data-dir="1">RY+</button>
+                                <button class="nudge-btn" data-axis="ry" data-dir="-1">RY-</button>
+                                <button class="nudge-btn" data-axis="rz" data-dir="1">RZ+</button>
+                                <button class="nudge-btn" data-axis="rz" data-dir="-1">RZ-</button>
+                            </div>
+                        </div>
+                        <div class="control-row"
+                            style="margin-top: 10px; flex-direction: row; justify-content: space-between; align-items: center;">
+                            <span>Mostrar Sólido:</span>
+                            <label class="switch">
+                                <input type="checkbox" id="shading-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-align" class="tab-panel">
+                <div class="glass adjustment-panel">
+                    <h2 style="margin: 0; font-size: 1rem; color: #60a5fa;">Alineación de 3 Puntos</h2>
+
+                    <div class="control-row">
+                        <span>Puntos Modelo:</span>
+                        <div class="nudge-group">
+                            <button id="p-mod-1" class="point-btn" data-type="model" data-idx="0">M1: ---</button>
+                            <button id="p-mod-2" class="point-btn" data-type="model" data-idx="1">M2: ---</button>
+                            <button id="p-mod-3" class="point-btn" data-type="model" data-idx="2">M3: ---</button>
+                        </div>
+                    </div>
+
+                    <div class="control-row" style="margin-top: 10px;">
+                        <span>Puntos Realidad:</span>
+                        <div class="nudge-group">
+                            <button id="p-real-1" class="point-btn" data-type="real" data-idx="0">R1: ---</button>
+                            <button id="p-real-2" class="point-btn" data-type="real" data-idx="1">R2: ---</button>
+                            <button id="p-real-3" class="point-btn" data-type="real" data-idx="2">R3: ---</button>
+                        </div>
+                    </div>
+
+                    <div class="control-row" style="margin-top: 10px; display: flex; flex-direction: column; gap: 5px;">
+                        <span style="display: flex; justify-content: space-between;">
+                            Desfase de selección (px): <span id="offset-val-display">10</span>
+                        </span>
+                        <input type="range" id="drag-offset-input" min="0" max="100" value="10" style="padding: 0;">
+                    </div>
+
+                    <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <button id="btn-calculate-align" style="background: #10b981;">Alinear</button>
+                        <button id="btn-reset-align" style="background: #ef4444;">Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-models" class="tab-panel">
+                <div class="glass examples-panel">
+                    <h2>Modelos Cargados</h2>
+                    <div id="loaded-models-list" class="model-list">
+                        <!-- Items will be generated here -->
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <input type="file" id="model-upload" accept=".glb,.gltf,.dwg,.ifc" hidden>
+                        <button id="upload-btn" style="width: 100%; padding: 0.6rem;">Subir Archivo</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-create" class="tab-panel">
+                <div class="glass creator-panel">
+                    <h2>Crear Elemento</h2>
+                    <select id="shape-select">
+                        <option value="box">Cubo / Caja</option>
+                        <option value="cylinder">Cilindro</option>
+                        <option value="sphere">Esfera</option>
+                    </select>
+                    <div class="input-group">
+                        <input type="number" id="dim-x" placeholder="Ancho (m)" step="0.1" value="1">
+                        <input type="number" id="dim-y" placeholder="Alto (m)" step="0.1" value="1">
+                        <input type="number" id="dim-z" placeholder="Fondo (m)" step="0.1" value="1">
+                    </div>
+                    <button id="create-btn">Generar 3D</button>
+                </div>
+            </div>
+            <div id="tab-console" class="tab-panel">
+                <div class="glass console-panel">
+                    <h2>Terminal</h2>
+                    <div id="debug-content" class="tab-debug-content">
+                        <div>--- Sistema Iniciado ---</div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <div id="canvas-container"></div>
+    <script type="module" src="/main.js"></script>
+</body>
+
+</html>

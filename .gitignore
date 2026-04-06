@@ -1,0 +1,44 @@
+# Node.js
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# JavaScript / Vite
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+
+# Archivos temporales de modelos
+# Ignoramos los contenidos pero mantenemos las carpetas
+uploads/*
+!uploads/.gitkeep
+converted/*
+!converted/.gitkeep
+
+# Sistema (macOS y Windows)
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*.docx
+
+# Documentación de respaldo que no sea la app
+fix_*.py
+bad_css.txt
+corrupted_part.txt
+
+# Editor (VS Code, Brain, etc)
+.vscode/
+.idea/
+.gemini/
