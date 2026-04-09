@@ -603,72 +603,98 @@ button:hover {
     visibility: visible !important;
   }
 }
-
-/* AR Only Controls */
-.ar-only-controls {
-  display: none;
-  width: 100%;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 12px;
+/* Bottom Bar Unificada (Consistente en 3D y AR) */
+.bottom-controls-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 15px;
+  right: 15px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  z-index: 9999;
+  pointer-events: none; /* No bloquea el visor 3D */
 }
 
-#ui-container.ar-mode .ar-only-controls {
-  display: flex !important;
+.bottom-controls-bar button, 
+.bottom-controls-bar div {
+  pointer-events: auto; /* Los botones sí captan toques */
 }
 
-.ar-btn {
+.ui-action-btn {
   flex: 1;
-  padding: 0.8rem;
+  max-width: 180px;
+  padding: 0.9rem;
   font-size: 0.85rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(30, 41, 59, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: white;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 
-.ar-btn:active {
-  transform: scale(0.95);
-  background: rgba(255, 255, 255, 0.2);
+.ui-action-btn:active {
+  transform: scale(0.94);
+  background: rgba(47, 60, 85, 0.9);
 }
 
-.ar-btn.exit {
+.ui-action-btn.primary {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+}
+
+.ui-action-btn.exit {
   background: #ef4444;
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+}
+
+.ar-only-btn {
+  display: none !important;
+}
+
+body.ar-active .ar-only-btn {
+  display: flex !important;
+}
+
+body.ar-active #start-ar-custom-btn {
+  display: none !important;
+}
+
+/* Ocultar elementos redundantes en AR */
+body.ar-active #menu-toggle,
+body.ar-active #refresh-btn,
+#ARButton {
+  display: none !important;
+}
+
+/* Ajustes del contenedor bajo modo AR */
+#ui-container.ar-mode {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  bottom: 90px; /* Separar del panel de botones */
+}
+
+#ui-container.ar-mode.ui-minimized {
+  pointer-events: none !important;
 }
 
 #ui-container.ar-mode.ui-minimized .tabs-nav,
 #ui-container.ar-mode.ui-minimized .tab-panel {
   display: none !important;
-}
-
-#ui-container.ar-mode.ui-minimized {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  pointer-events: none !important;
-  bottom: 30px;
-}
-
-#ui-container.ar-mode.ui-minimized .ar-only-controls {
-  margin-bottom: 0;
-  pointer-events: auto !important;
-  width: 220px;
-  align-self: center;
-}
-
-#ui-container.ar-mode.ui-minimized .ar-btn {
-  background: rgba(30, 41, 59, 0.8);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(96, 165, 250, 0.3);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
 }
 
 /* Optimizaciones de Espacio en AR Mobile */
@@ -679,6 +705,7 @@ button:hover {
 
 #ui-container.ar-mode .glass {
   padding: 10px !important;
+  border-radius: 20px;
 }
 
 #ui-container.ar-mode .tab-btn {
@@ -686,19 +713,7 @@ button:hover {
   font-size: 0.75rem !important;
 }
 
-#ui-container.ar-mode .control-row {
-  margin-top: 5px !important;
-}
-
-#ui-container.ar-mode .nudge-group {
-  gap: 3px !important;
-}
-
-#ui-container.ar-mode .point-btn {
-  padding: 0.4rem !important;
-  font-size: 0.7rem !important;
-}
-
+/* Consola de Debug (Terminal) */
 .console-panel h2 {
   font-size: 1rem;
   margin: 0 0 10px 0;
@@ -706,27 +721,15 @@ button:hover {
 }
 
 .tab-debug-content {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.6);
   border: 1px solid rgba(0, 255, 0, 0.2);
-  border-radius: 6px;
-  padding: 10px;
+  border-radius: 12px;
+  padding: 12px;
   color: #4ade80;
-  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.75rem;
-  height: 200px;
+  height: 180px;
   overflow-y: auto;
-  word-break: break-all;
 }
-
-.tab-debug-content::-webkit-scrollbar {
-  width: 4px;
-}
-
-.tab-debug-content::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.tab-debug-content::-webkit-scrollbar-thumb {
-  background: rgba(74, 222, 128, 0.5);
-  border-radius: 4px;
+x;
 }

@@ -26,13 +26,18 @@
             </button>
 
             <div id="ui-container">
-            <!-- Controles Específicos de AR -->
-            <div id="ar-controls" class="ar-only-controls">
-                <button id="ar-toggle-ui-btn" class="ar-btn">📂 Panel</button>
-                <button id="ar-exit-btn" class="ar-btn exit">🚪 Salir</button>
+            <!-- Barra de Navegación Unificada (Panel | AR | Actualizar) -->
+            <div id="unified-bottom-controls" class="bottom-controls-bar">
+                <button id="quick-panel-btn" class="ui-action-btn">📂 Panel</button>
+                
+                <!-- Este botón cambia según el modo -->
+                <button id="start-ar-custom-btn" class="ui-action-btn primary">🚀 Entrar AR</button>
+                <button id="ar-exit-btn" class="ui-action-btn exit ar-only-btn">🚪 Salir AR</button>
+                
+                <button id="refresh-btn-unified" class="ui-action-btn">🔄 Actualizar</button>
             </div>
 
-            <!-- Tab Navigation -->
+            <!-- Tab Navigation (Tabs are now secondary or inside panel) -->
             <div class="tabs-nav">
                 <button class="tab-btn active" data-tab="tab-adjust">🎮 Ajuste</button>
                 <button class="tab-btn" data-tab="tab-align">📍 Alineación</button>

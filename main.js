@@ -99,27 +99,60 @@ function init() {
         };
     }
 
-    // AR Controls
-    const btnArToggle = document.getElementById('ar-toggle-ui-btn');
+    // Unified Bottom Bar Controls (Panel | AR | Refresh)
+    const btnQuickPanel = document.getElementById('quick-panel-btn');
+    const btnStartAR = document.getElementById('start-ar-custom-btn');
     const btnArExit = document.getElementById('ar-exit-btn');
+    const btnRefresh = document.getElementById('refresh-btn-unified');
 
-    if (btnArToggle) {
-        btnArToggle.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            uiContainer.classList.toggle('ui-minimized');
-            if (uiContainer.classList.contains('ui-minimized')) {
-                btnArToggle.textContent = '➕ Abrir Control';
+    // Mover el botón flotante de refresco a la barra unificada
+    if (btnRefresh) {
+        btnRefresh.onclick = () => window.location.reload();
+    }
+
+    if (btnQuickPanel) {
+        btnQuickPanel.onclick = (e) => {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            
+            // Lógica de "Interruptor": Abre o Cierra el panel de controles
+            const isVisible = uiContainer.classList.contains('active') && !uiContainer.classList.contains('ui-minimized');
+            
+            if (isVisible) {
+                // Si está abierto, lo minimizamos y escondemos
+                uiContainer.classList.remove('active');
+                uiContainer.classList.add('ui-minimized');
+                btnQuickPanel.textContent = '➕ Abrir Panel';
+                screenLog('📉 Panel oculto');
             } else {
-                btnArToggle.textContent = '📂 Panel';
+                // Si está cerrado, lo mostramos completo
+                uiContainer.classList.add('active');
+                uiContainer.classList.remove('ui-minimized');
+                btnQuickPanel.textContent = '📂 Panel';
+                screenLog('📈 Panel abierto');
+            }
+        };
+    }
+
+    if (btnStartAR) {
+        btnStartAR.onclick = (e) => {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            const realARButton = document.getElementById('ARButton');
+            if (realARButton) {
+                if (realARButton.tagName.toLowerCase() === 'a' || realARButton.textContent.includes('NOT SUPPORTED') || realARButton.textContent.includes('AVAILABLE')) {
+                    alert('Realidad Aumentada (WebXR) no soportada en este dispositivo o navegador (iOS requiere App compatible o Mozilla WebXR Viewer).');
+                    screenLog('⚠️ Error: AR no soportado nativamente en este navegador', true);
+                } else {
+                    realARButton.click();
+                }
+            } else {
+                screenLog('⚠️ Error: AR no disponible en este dispositivo', true);
             }
         };
     }
 
     if (btnArExit) {
         btnArExit.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+            if (e) { e.preventDefault(); e.stopPropagation(); }
             const session = renderer.xr.getSession();
             if (session) {
                 session.end();
@@ -156,6 +189,11 @@ function init() {
             optionalFeatures: ['dom-overlay'],
             domOverlay: { root: document.getElementById('ui-wrapper') }
         });
+        
+        // Forzar asignación del ID en caso que sea el fallback anchor <a href> de iOS
+        // para que CSS pueda ocultarlo.
+        arButton.id = 'ARButton';
+        
         document.body.appendChild(arButton);
 
         // Lights
@@ -348,6 +386,14 @@ function restoreModelAlignment(url) {
         console.error('Error restaurando persistencia:', e);
         return false;
     }
+}
+
+function cleanupSession() {
+    // Limpiar clases de estado AR/UI
+    document.body.classList.remove('ar-active', 'ui-overlay-active');
+    // Resetear elementos de control
+    const controls = document.querySelectorAll('.bottom-controls-bar');
+    controls.forEach(c => c.style.display = 'none');
 }
 
 function nudgeModel(axis, dir) {
@@ -944,7 +990,13 @@ function render(t, frame) {
             uiContainer.classList.add('ar-mode');
             hitTestSourceRequested = true;
 
-            session.addEventListener('select', () => {
+            session.addEventListener('select', (event) => {
+                // Verificar si el toque fue sobre la interfaz DOM para ignorar el movimiento del 3D
+                // (WebXR standard check for dom-overlay)
+                const isUIInteraction = event.inputSource.targetRayMode === 'screen' && 
+                                        event.inputSource.domOverlayState && 
+                                        event.inputSource.domOverlayState.type !== 'none';
+                
                 const alignTab = document.querySelector('.tab-btn[data-tab="tab-align"]');
                 const isAlignTabActive = alignTab && alignTab.classList.contains('active');
 
@@ -952,10 +1004,23 @@ function render(t, frame) {
                     if (isAlignTabActive && activePointType === 'real') {
                         captureRealPoint();
                     } else if (!isAlignTabActive && !isAligned) {
-                        // Solo mueve el objeto completo al click si NO está en la pestaña de alinear
-                        // Y tampoco ha sido alineado meticulosamente usando los 3 puntos
+                        // Solo permitimos mover el modelo si NO estamos en alineación fina
+                        // y el toque NO fue sobre un botón de la interfaz
+                        
+                        screenLog("📍 Fijando posición...");
+                        
+                        // Posicionamiento normal
                         pivotGroup.position.setFromMatrixPosition(reticle.matrix);
                         pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
+                        
+                        // Opcional: Intentar usar Anchors si el navegador lo soporta para mayor estabilidad
+                        if (frame.createAnchor) {
+                            const pose = results[0].getPose(refSpace);
+                            frame.createAnchor(pose.transform).then((anchor) => {
+                                screenLog("⚓ Anclaje de precisión activado");
+                                // En el futuro podríamos actualizar el pivotGroup basándonos en anchor.anchorSpace
+                            }).catch(e => console.warn("No se pudo crear el anclaje", e));
+                        }
                     }
                 }
             });

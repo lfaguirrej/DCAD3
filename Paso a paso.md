@@ -14,6 +14,11 @@ Como la AR requiere una conexión segura (HTTPS), usamos un túnel para que el c
 
 Escribe: npx localtunnel --port 5173 --subdomain unal-dcad-ar4
 (Si el subdominio está ocupado, cámbialo por algo único como dcad-tunel-123).
+
+Para saber la ip digita:
+curl.exe ifconfig.me
+En Tunja es 181.234.182.214
+
 3. Conexión desde el Celular
 Abre el navegador en tu celular (o WebXR Viewer si es iPhone).
 Entra a la URL que te dio la Terminal 3: https://unal-dcad-ar4.loca.lt (o el que hayas usado).

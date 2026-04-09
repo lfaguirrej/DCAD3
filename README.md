@@ -29,6 +29,12 @@ Abre una tercera terminal y ejecuta:
 ```powershell
 npx localtunnel --port 5173 --subdomain unal-dcad-ar4
 ```
+### Paso D: Determinar la IP
+Abre una cuarta terminal y ejecuta:
+```powershell
+curl.exe ifconfig.me
+```
+
 
 ## 3. Acceder desde el Celular
 
