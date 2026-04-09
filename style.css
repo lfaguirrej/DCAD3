@@ -598,7 +598,7 @@ button:hover {
     right: 15px !important;
     left: 15px !important;
     width: auto !important;
-    bottom: 20px !important;
+    bottom: 85px !important;
     top: auto !important;
     visibility: visible !important;
   }
@@ -612,7 +612,7 @@ button:hover {
   display: flex;
   justify-content: center;
   gap: 12px;
-  z-index: 9999;
+  z-index: 1000010;
   pointer-events: none; /* No bloquea el visor 3D */
 }
 
@@ -730,6 +730,4 @@ body.ar-active #refresh-btn,
   font-size: 0.75rem;
   height: 180px;
   overflow-y: auto;
-}
-x;
-}
+}
