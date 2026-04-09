@@ -973,8 +973,12 @@ function render(t, frame) {
 
                 // Chrome en Android (y otros navegadores WebXR) inyecta 'display: none'
                 // al contenedor de domOverlay al finalizar la sesión AR.
-                // Restablecemos el display para que vuelva a ser visible:
+                // Restablecemos el display para que vuelva a ser visible todo el UI:
                 uiContainer.style.display = '';
+                const uiWrapper = document.getElementById('ui-wrapper');
+                if (uiWrapper) uiWrapper.style.display = '';
+                const bottomControls = document.getElementById('unified-bottom-controls');
+                if (bottomControls) bottomControls.style.display = '';
 
                 // Volver a enfocar la cámara al modelo y reactualizar el render para la pantalla normal
                 setTimeout(() => {
