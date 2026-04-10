@@ -42,7 +42,6 @@
                 <button class="tab-btn active" data-tab="tab-adjust">🎮 Ajuste</button>
                 <button class="tab-btn" data-tab="tab-align">📍 Alineación</button>
                 <button class="tab-btn" data-tab="tab-models">📦 Modelos</button>
-                <button class="tab-btn" data-tab="tab-create">➕ Crear</button>
                 <button class="tab-btn" data-tab="tab-console">💾</button>
             </div>
 
@@ -95,18 +94,18 @@
                 <div class="glass adjustment-panel">
                     <h2 style="margin: 0; font-size: 1rem; color: #60a5fa;">Alineación de 3 Puntos</h2>
 
-                    <div class="control-row">
-                        <span>Puntos Modelo:</span>
-                        <div class="nudge-group">
+                    <div class="control-row" style="flex-direction: row; align-items: center; gap: 10px;">
+                        <span style="min-width: 60px;">Modelo:</span>
+                        <div class="nudge-group" style="grid-template-columns: repeat(3, 1fr); flex: 1;">
                             <button id="p-mod-1" class="point-btn" data-type="model" data-idx="0">M1: ---</button>
                             <button id="p-mod-2" class="point-btn" data-type="model" data-idx="1">M2: ---</button>
                             <button id="p-mod-3" class="point-btn" data-type="model" data-idx="2">M3: ---</button>
                         </div>
                     </div>
 
-                    <div class="control-row" style="margin-top: 10px;">
-                        <span>Puntos Realidad:</span>
-                        <div class="nudge-group">
+                    <div class="control-row" style="margin-top: 10px; flex-direction: row; align-items: center; gap: 10px;">
+                        <span style="min-width: 60px;">Realidad:</span>
+                        <div class="nudge-group" style="grid-template-columns: repeat(3, 1fr); flex: 1;">
                             <button id="p-real-1" class="point-btn" data-type="real" data-idx="0">R1: ---</button>
                             <button id="p-real-2" class="point-btn" data-type="real" data-idx="1">R2: ---</button>
                             <button id="p-real-3" class="point-btn" data-type="real" data-idx="2">R3: ---</button>
@@ -117,7 +116,7 @@
                         <span style="display: flex; justify-content: space-between;">
                             Desfase de selección (px): <span id="offset-val-display">10</span>
                         </span>
-                        <input type="range" id="drag-offset-input" min="0" max="100" value="10" style="padding: 0;">
+                        <input type="range" id="drag-offset-input" min="0.1" max="100" step="0.1" value="10" style="padding: 0;">
                     </div>
 
                     <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -140,22 +139,7 @@
                 </div>
             </div>
 
-            <div id="tab-create" class="tab-panel">
-                <div class="glass creator-panel">
-                    <h2>Crear Elemento</h2>
-                    <select id="shape-select">
-                        <option value="box">Cubo / Caja</option>
-                        <option value="cylinder">Cilindro</option>
-                        <option value="sphere">Esfera</option>
-                    </select>
-                    <div class="input-group">
-                        <input type="number" id="dim-x" placeholder="Ancho (m)" step="0.1" value="1">
-                        <input type="number" id="dim-y" placeholder="Alto (m)" step="0.1" value="1">
-                        <input type="number" id="dim-z" placeholder="Fondo (m)" step="0.1" value="1">
-                    </div>
-                    <button id="create-btn">Generar 3D</button>
-                </div>
-            </div>
+
             <div id="tab-console" class="tab-panel">
                 <div class="glass console-panel">
                     <h2>Terminal</h2>

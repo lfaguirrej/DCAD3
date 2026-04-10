@@ -235,10 +235,6 @@ function init() {
         };
     });
 
-    // Shape creation
-    const createBtn = document.getElementById('create-btn');
-    if (createBtn) createBtn.onclick = () => createCustomElement();
-
     // Shading toggle
     const shadeCheck = document.getElementById('shading-toggle');
     if (shadeCheck) shadeCheck.onchange = () => {
@@ -263,6 +259,8 @@ function init() {
 
 async function initModelList() {
     addModelToList('Bodega Ejemplo (A-S-2)', '/Ejemplos/A-S-2.ifc', 'ifc', true);
+    addModelToList('Caja 30x40x50', 'box-30-40-50', 'shape', true);
+    addModelToList('Cilindro Ø60 x 40h', 'cylinder-60-40-1', 'shape', true);
     try {
         const res = await fetch('/models');
         if (res.ok) {
@@ -309,6 +307,10 @@ function addModelToList(name, url, type, isExample) {
 
         if (type === 'ifc') {
             loadIFC(url).finally(onComplete);
+        } else if (type === 'shape') {
+            const parts = url.split('-');
+            generateShape(parts[0], parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
+            onComplete();
         } else {
             loadModel(url); // loadModel no es async aún, pero lo manejamos
             setTimeout(onComplete, 1000);
@@ -608,11 +610,7 @@ function fitCameraToObject(obj) {
     if (controls) { controls.target.copy(center); controls.update(); }
 }
 
-function createCustomElement() {
-    const type = document.getElementById('shape-select').value;
-    const x = parseFloat(document.getElementById('dim-x').value) || 1;
-    const y = parseFloat(document.getElementById('dim-y').value) || 1;
-    const z = parseFloat(document.getElementById('dim-z').value) || 1;
+function generateShape(type, x, y, z) {
     resetAlignmentGroups();
     let geo = type === 'box' ? new THREE.BoxGeometry(x, y, z) :
         type === 'cylinder' ? new THREE.CylinderGeometry(x / 2, x / 2, y, 32) :
@@ -620,7 +618,12 @@ function createCustomElement() {
     model = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.7 }));
     model.position.set(0, y / 2, 0);
     offsetGroup.add(model);
+    
+    // Extraer bordes para proyectar el contorno verde igual que los modelos CAD
+    extractEdges(model);
+    
     fitCameraToObject(offsetGroup);
+    screenLog(`✅ Figura generada: ${x}x${y}x${z}`);
 }
 
 function initReticle() {
@@ -736,7 +739,7 @@ function onPointerDown(event) {
 
     const rect = renderer.domElement.getBoundingClientRect();
     const offsetSlider = document.getElementById('drag-offset-input');
-    const offsetY = offsetSlider ? parseInt(offsetSlider.value) : 10;
+    const offsetY = offsetSlider ? parseFloat(offsetSlider.value) : 10;
     const mouse = new THREE.Vector2(
         ((event.clientX - rect.left) / rect.width) * 2 - 1,
         -(((event.clientY - offsetY) - rect.top) / rect.height) * 2 + 1
@@ -789,7 +792,7 @@ function onPointerMove(event) {
 
     const rect = renderer.domElement.getBoundingClientRect();
     const offsetSlider = document.getElementById('drag-offset-input');
-    const offsetY = offsetSlider ? parseInt(offsetSlider.value) : 10;
+    const offsetY = offsetSlider ? parseFloat(offsetSlider.value) : 10;
     const mouse = new THREE.Vector2(
         ((event.clientX - rect.left) / rect.width) * 2 - 1,
         -(((event.clientY - offsetY) - rect.top) / rect.height) * 2 + 1
