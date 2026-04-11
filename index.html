@@ -46,16 +46,12 @@
             </div>
 
             <!-- Tab Contents -->
-            <div id="tab-adjust" class="tab-panel active">
-                <div class="glass adjustment-panel" id="adj-panel">
+            <div id="tab-adjust" class="tab-panel active" style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="glass adjustment-panel" id="adj-panel-move">
                     <div class="panel-header">
-                        <h2>Ajuste de Alineación</h2>
-                        <label class="switch">
-                            <input type="checkbox" id="panel-toggle" checked>
-                            <span class="slider"></span>
-                        </label>
+                        <h2>Mover</h2>
                     </div>
-                    <div id="panel-controls">
+                    <div class="panel-controls" style="transition: all 0.3s ease;">
                         <div class="control-row">
                             <span>Posición (X, Y, Z):</span>
                             <div class="nudge-group">
@@ -67,6 +63,14 @@
                                 <button class="nudge-btn" data-axis="z" data-dir="-1">Z-</button>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div class="glass adjustment-panel" id="adj-panel-rotate">
+                    <div class="panel-header">
+                        <h2>Rotar</h2>
+                    </div>
+                    <div class="panel-controls" style="transition: all 0.3s ease;">
                         <div class="control-row">
                             <span>Rotación (X, Y, Z):</span>
                             <div class="nudge-group">
@@ -77,14 +81,6 @@
                                 <button class="nudge-btn" data-axis="rz" data-dir="1">RZ+</button>
                                 <button class="nudge-btn" data-axis="rz" data-dir="-1">RZ-</button>
                             </div>
-                        </div>
-                        <div class="control-row"
-                            style="margin-top: 10px; flex-direction: row; justify-content: space-between; align-items: center;">
-                            <span>Mostrar Sólido:</span>
-                            <label class="switch">
-                                <input type="checkbox" id="shading-toggle" checked>
-                                <span class="slider"></span>
-                            </label>
                         </div>
                     </div>
                 </div>
@@ -128,7 +124,16 @@
 
             <div id="tab-models" class="tab-panel">
                 <div class="glass examples-panel">
-                    <h2>Modelos Cargados</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h2 style="margin: 0;">Modelos Cargados</h2>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 0.8rem; opacity: 0.8;">Ver Sólido</span>
+                            <label class="switch">
+                                <input type="checkbox" id="shading-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
                     <div id="loaded-models-list" class="model-list">
                         <!-- Items will be generated here -->
                     </div>
