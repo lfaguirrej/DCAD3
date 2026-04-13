@@ -201,8 +201,8 @@ function init() {
         document.body.appendChild(arButton);
 
         // Lights (Básica y estable para todos los dispositivos)
-        scene.add(new THREE.AmbientLight(0xffffff, 1.8)); 
-        
+        scene.add(new THREE.AmbientLight(0xffffff, 1.8));
+
         const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
         dirLight1.position.set(20, 30, 10);
         scene.add(dirLight1);
@@ -263,7 +263,7 @@ function init() {
 }
 
 async function initModelList() {
-    addModelToList('Cercha5', '/Ejemplos/A-S-2.ifc', 'ifc', true);
+    addModelToList('Cercha7', '/Ejemplos/A-S-2.ifc', 'ifc', true);
     addModelToList('Caja 30x40x50', 'box-30-40-50', 'shape', true);
     addModelToList('Cilindro Ø60 x 40h', 'cylinder-60-40-1', 'shape', true);
     try {
@@ -454,21 +454,21 @@ function loadModel(url) {
                     restoreModelAlignment(url);
 
                     // Forzar visibilidad del sólido
-                extractEdges(model);
-                if (model) model.visible = true;
-                if (!renderer.xr.isPresenting) {
-                    fitCameraToObject(pivotGroup);
+                    extractEdges(model);
+                    if (model) model.visible = true;
+                    if (!renderer.xr.isPresenting) {
+                        fitCameraToObject(pivotGroup);
+                    }
+                    screenLog('✅ GLB Listo');
+                    resolve();
+                } catch (e) {
+                    screenLog(`❌ Error procesando GLB: ${e.message}`, true);
+                    reject(e);
                 }
-                screenLog('✅ GLB Listo');
-                resolve();
-            } catch (e) {
-                screenLog(`❌ Error procesando GLB: ${e.message}`, true);
-                reject(e);
-            }
-        }, undefined, (err) => {
-            screenLog('❌ Error de red cargando GLB', true);
-            reject(err);
-        });
+            }, undefined, (err) => {
+                screenLog('❌ Error de red cargando GLB', true);
+                reject(err);
+            });
     });
 }
 
@@ -517,8 +517,8 @@ function loadIFC(url) {
                     model.traverse(c => {
                         if (c.isMesh) {
                             meshCount++;
-                            c.material = new THREE.MeshPhongMaterial({ 
-                                color: 0xcccccc, 
+                            c.material = new THREE.MeshPhongMaterial({
+                                color: 0xcccccc,
                                 side: THREE.FrontSide, // FrontSide es más estable para volumen sólido
                                 flatShading: true,     // Resalta mucho más las caras 3D
                                 transparent: false,
