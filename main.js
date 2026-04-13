@@ -201,8 +201,8 @@ function init() {
         document.body.appendChild(arButton);
 
         // Lights (Básica y estable para todos los dispositivos)
-        scene.add(new THREE.AmbientLight(0xffffff, 1.2)); 
-        
+        scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+
         const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
         dirLight1.position.set(10, 20, 10);
         scene.add(dirLight1);
@@ -263,7 +263,7 @@ function init() {
 }
 
 async function initModelList() {
-    addModelToList('Cercha', '/Ejemplos/A-S-2.ifc', 'ifc', true);
+    addModelToList('Cercha5', '/Ejemplos/A-S-2.ifc', 'ifc', true);
     addModelToList('Caja 30x40x50', 'box-30-40-50', 'shape', true);
     addModelToList('Cilindro Ø60 x 40h', 'cylinder-60-40-1', 'shape', true);
     try {
@@ -452,10 +452,10 @@ function loadModel(url) {
                 setTimeout(() => {
                     extractEdges(model);
                     restoreModelAlignment(url);
-                    
+
                     // Forzar visibilidad del sólido
                     if (model) model.visible = true;
-                    
+
                     // Centrado de cámara robusto
                     if (!renderer.xr.isPresenting) {
                         fitCameraToObject(pivotGroup);
@@ -468,7 +468,7 @@ function loadModel(url) {
                         pivotGroup.position.setFromMatrixPosition(reticle.matrix);
                         pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
                     }
-                    
+
                     screenLog('✅ GLB Listo');
                     resolve();
                 }, 100);
@@ -528,8 +528,8 @@ function loadIFC(url) {
                     model.traverse(c => {
                         if (c.isMesh) {
                             meshCount++;
-                            c.material = new THREE.MeshPhongMaterial({ 
-                                color: 0x94a3b8, 
+                            c.material = new THREE.MeshPhongMaterial({
+                                color: 0x94a3b8,
                                 side: THREE.DoubleSide,
                                 transparent: true,
                                 opacity: 0.8
@@ -560,12 +560,12 @@ function loadIFC(url) {
                     setTimeout(() => {
                         extractEdges(model);
                         restoreModelAlignment(url);
-                        
+
                         // Centrar cámara en el modelo
                         if (!renderer.xr.isPresenting) {
                             fitCameraToObject(pivotGroup);
                         }
-                        
+
                         if (model) model.visible = true;
                         resolve();
                     }, 300);
