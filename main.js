@@ -456,18 +456,17 @@ function loadModel(url) {
 
                 setTimeout(() => {
                     extractEdges(model);
-
                     const restored = restoreModelAlignment(url);
-                    if (!restored) {
-                        fitCameraToObject(offsetGroup);
-
-                        // Si estamos en AR, ponerlo frente al usuario
-                        if (renderer.xr.isPresenting && reticle.visible) {
-                            pivotGroup.position.setFromMatrixPosition(reticle.matrix);
-                            pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
-                        }
+                    
+                    // Si NO estamos en AR, forzar que la cámara apunte al modelo
+                    if (!renderer.xr.isPresenting) {
+                        fitCameraToObject(pivotGroup);
+                    } else if (!restored && reticle.visible) {
+                        // Si estamos en AR y no hay restauración, poner frente al usuario
+                        pivotGroup.position.setFromMatrixPosition(reticle.matrix);
+                        pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
                     }
-
+                    
                     screenLog('✅ GLB Listo');
                     resolve();
                 }, 100);
@@ -559,14 +558,14 @@ function loadIFC(url) {
                     setTimeout(() => {
                         extractEdges(model);
                         const restored = restoreModelAlignment(url);
-                        if (!restored) {
-                            fitCameraToObject(offsetGroup);
-
-                            // Si estamos en AR, ponerlo frente al usuario
-                            if (renderer.xr.isPresenting && reticle.visible) {
-                                pivotGroup.position.setFromMatrixPosition(reticle.matrix);
-                                pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
-                            }
+                        
+                        // Si NO estamos en AR activo, forzar el centrado de cámara
+                        if (!renderer.xr.isPresenting) {
+                            fitCameraToObject(pivotGroup);
+                        } else if (!restored && reticle.visible) {
+                            // Si estamos en AR y no hay posición guardada, colocar en retícula
+                            pivotGroup.position.setFromMatrixPosition(reticle.matrix);
+                            pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
                         }
                         resolve();
                     }, 300);
