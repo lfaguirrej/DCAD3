@@ -160,12 +160,16 @@ function init() {
         };
     }
 
-    // Refresh Button
+    // Refresh Button (Ahora Centrar Vista)
     const refreshBtn = document.getElementById('refresh-btn');
     if (refreshBtn) {
         refreshBtn.onclick = () => {
-            screenLog('🔄 Recargando aplicación...');
-            setTimeout(() => window.location.reload(), 300);
+            if (pivotGroup) {
+                fitCameraToObject(pivotGroup);
+                screenLog('🎯 Vista centrada');
+            } else {
+                window.location.reload();
+            }
         };
     }
 
@@ -209,7 +213,7 @@ function init() {
         scene.add(dirLight1);
         
         // "Luz de minero" que sigue a la cámara para asegurar visibilidad frontal siempre
-        const headLight = new THREE.PointLight(0xffffff, 1.2, 100);
+        const headLight = new THREE.PointLight(0xffffff, 2.0, 150);
         camera.add(headLight); // Se añade a la cámara
         scene.add(camera);     // Se añade la cámara a la escena para que la luz funcione
         
@@ -466,13 +470,15 @@ function loadModel(url) {
                     // Forzar visibilidad del sólido
                     if (model) model.visible = true;
                     
-                    // Si NO estamos en AR, forzar que la cámara apunte al modelo
+                    // Centrado de cámara robusto
                     if (!renderer.xr.isPresenting) {
                         fitCameraToObject(pivotGroup);
-                        // Reintento para móviles donde el layout puede cambiar al cargar
-                        setTimeout(() => fitCameraToObject(pivotGroup), 300);
+                        // Reintento extra para móviles (estabilización)
+                        setTimeout(() => {
+                            fitCameraToObject(pivotGroup);
+                            if (model) model.visible = true;
+                        }, 500);
                     } else if (reticle.visible) {
-                        // Si estamos en AR, poner frente al usuario
                         pivotGroup.position.setFromMatrixPosition(reticle.matrix);
                         pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
                     }
@@ -574,9 +580,11 @@ function loadIFC(url) {
 
                         // Si NO estamos en AR activo, forzar el centrado de cámara
                         if (!renderer.xr.isPresenting) {
-                            fitCameraToObject(pivotGroup);
-                            // Segundo intento para estabilidad en móviles
-                            setTimeout(() => fitCameraToObject(pivotGroup), 300);
+                            setTimeout(() => {
+                                fitCameraToObject(pivotGroup);
+                                if (model) model.visible = true; // Asegurar sólido
+                                screenLog('🔍 Ajuste fino de cámara');
+                            }, 500);
                         } else if (reticle.visible) {
                             // Si estamos en AR colocar en retícula
                             pivotGroup.position.setFromMatrixPosition(reticle.matrix);
