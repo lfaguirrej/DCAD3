@@ -268,7 +268,7 @@ function init() {
 }
 
 async function initModelList() {
-    addModelToList('Cercha2', '/Ejemplos/A-S-2.ifc', 'ifc', true);
+    addModelToList('Cercha3', '/Ejemplos/A-S-2.ifc', 'ifc', true);
     addModelToList('Caja 30x40x50', 'box-30-40-50', 'shape', true);
     addModelToList('Cilindro Ø60 x 40h', 'cylinder-60-40-1', 'shape', true);
     try {
@@ -457,7 +457,7 @@ function loadModel(url) {
                 setTimeout(() => {
                     extractEdges(model);
                     const restored = restoreModelAlignment(url);
-                    
+
                     // Si NO estamos en AR, forzar que la cámara apunte al modelo
                     if (!renderer.xr.isPresenting) {
                         fitCameraToObject(pivotGroup);
@@ -466,7 +466,7 @@ function loadModel(url) {
                         pivotGroup.position.setFromMatrixPosition(reticle.matrix);
                         pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
                     }
-                    
+
                     screenLog('✅ GLB Listo');
                     resolve();
                 }, 100);
@@ -558,7 +558,7 @@ function loadIFC(url) {
                     setTimeout(() => {
                         extractEdges(model);
                         const restored = restoreModelAlignment(url);
-                        
+
                         // Si NO estamos en AR activo, forzar el centrado de cámara
                         if (!renderer.xr.isPresenting) {
                             fitCameraToObject(pivotGroup);
