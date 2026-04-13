@@ -177,7 +177,11 @@ function init() {
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000);
         camera.position.set(5, 5, 5);
 
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            alpha: true,
+            logarithmicDepthBuffer: true // Ayuda con la precisión de profundidad en modelos grandes/pequeños
+        });
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.xr.enabled = true;
@@ -196,11 +200,17 @@ function init() {
 
         document.body.appendChild(arButton);
 
-        // Lights
-        scene.add(new THREE.AmbientLight(0xffffff, 1.5));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 2);
-        dirLight.position.set(10, 20, 10);
-        scene.add(dirLight);
+        // Lights (Mejoradas para profundidad 3D)
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 0.8)); // Mejor percepción de caras superior/inferior
+
+        const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.2);
+        dirLight1.position.set(10, 20, 10);
+        scene.add(dirLight1);
+
+        const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.6);
+        dirLight2.position.set(-10, -5, -10);
+        scene.add(dirLight2);
 
         // Controls
         controls = new OrbitControls(camera, renderer.domElement);
@@ -258,7 +268,7 @@ function init() {
 }
 
 async function initModelList() {
-    addModelToList('Cercha', '/Ejemplos/A-S-2.ifc', 'ifc', true);
+    addModelToList('Cercha2', '/Ejemplos/A-S-2.ifc', 'ifc', true);
     addModelToList('Caja 30x40x50', 'box-30-40-50', 'shape', true);
     addModelToList('Cilindro Ø60 x 40h', 'cylinder-60-40-1', 'shape', true);
     try {
@@ -517,7 +527,12 @@ function loadIFC(url) {
                     model.traverse(c => {
                         if (c.isMesh) {
                             meshCount++;
-                            c.material = new THREE.MeshPhongMaterial({ color: 0x94a3b8, side: THREE.DoubleSide });
+                            c.material = new THREE.MeshStandardMaterial({
+                                color: 0x94a3b8,
+                                side: THREE.DoubleSide,
+                                metalness: 0.1,
+                                roughness: 0.5
+                            });
                             c.frustumCulled = false;
                         }
                     });
@@ -602,12 +617,32 @@ async function handleUpload(e) {
 }
 
 function fitCameraToObject(obj) {
+    if (!obj) return;
     const box = new THREE.Box3().setFromObject(obj);
     const center = box.getCenter(new THREE.Vector3());
-    const dist = box.getSize(new THREE.Vector3()).length() || 5;
-    camera.position.set(center.x + dist, center.y + dist, center.z + dist);
+    const size = box.getSize(new THREE.Vector3());
+
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = camera.fov * (Math.PI / 180);
+    let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+
+    // Ajuste para móviles (Portrait)
+    if (camera.aspect < 1) {
+        cameraZ = cameraZ / camera.aspect;
+    }
+
+    cameraZ *= 1.8; // Margen de seguridad para no quedar pegado al borde
+
+    camera.position.set(center.x + cameraZ * 0.5, center.y + cameraZ * 0.5, center.z + cameraZ);
     camera.lookAt(center);
-    if (controls) { controls.target.copy(center); controls.update(); }
+
+    if (controls) {
+        controls.target.copy(center);
+        controls.update();
+    }
+
+    camera.updateProjectionMatrix();
+    screenLog('🔍 Vista centrada');
 }
 
 function generateShape(type, x, y, z) {
