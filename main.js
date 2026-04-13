@@ -454,24 +454,13 @@ function loadModel(url) {
                     restoreModelAlignment(url);
 
                     // Forzar visibilidad del sólido
-                    if (model) model.visible = true;
-
-                    // Centrado de cámara robusto
-                    if (!renderer.xr.isPresenting) {
-                        fitCameraToObject(pivotGroup);
-                        // Reintento extra para móviles (estabilización)
-                        setTimeout(() => {
-                            fitCameraToObject(pivotGroup);
-                            if (model) model.visible = true;
-                        }, 500);
-                    } else if (reticle.visible) {
-                        pivotGroup.position.setFromMatrixPosition(reticle.matrix);
-                        pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
-                    }
-
-                    screenLog('✅ GLB Listo');
-                    resolve();
-                }, 100);
+                extractEdges(model);
+                if (model) model.visible = true;
+                if (!renderer.xr.isPresenting) {
+                    fitCameraToObject(pivotGroup);
+                }
+                screenLog('✅ GLB Listo');
+                resolve();
             } catch (e) {
                 screenLog(`❌ Error procesando GLB: ${e.message}`, true);
                 reject(e);
@@ -558,18 +547,12 @@ function loadIFC(url) {
 
                     screenLog('✨ ¡PROYECCIÓN LISTA!');
 
-                    setTimeout(() => {
-                        // Asegurar que el modelo es visible antes de extraer bordes
-                        if (model) model.visible = true;
-                        extractEdges(model);
-                        restoreModelAlignment(url);
-                        
-                        // Centrar cámara en el modelo
-                        if (!renderer.xr.isPresenting) {
-                            fitCameraToObject(pivotGroup);
-                        }
-                        resolve();
-                    }, 300);
+                    if (model) model.visible = true;
+                    extractEdges(model);
+                    if (!renderer.xr.isPresenting) {
+                        fitCameraToObject(pivotGroup);
+                    }
+                    resolve();
                 } catch (err) {
                     screenLog(`❌ Error 3D: ${err.message}`, true);
                     reject(err);
