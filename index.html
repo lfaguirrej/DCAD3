@@ -39,19 +39,20 @@
             <div id="ui-container">
             <!-- Tab Navigation (Tabs are now secondary or inside panel) -->
             <div class="tabs-nav">
-                <button class="tab-btn active" data-tab="tab-adjust">🎮 Ajuste</button>
+                <button class="tab-btn active" data-tab="tab-move">🏠 Mover</button>
+                <button class="tab-btn" data-tab="tab-rotate">🔄 Rotar</button>
                 <button class="tab-btn" data-tab="tab-align">📍 Alineación</button>
                 <button class="tab-btn" data-tab="tab-models">📦 Modelos</button>
                 <button class="tab-btn" data-tab="tab-console">💾</button>
             </div>
 
             <!-- Tab Contents -->
-            <div id="tab-adjust" class="tab-panel active" style="display: flex; flex-direction: column; gap: 10px;">
+            <div id="tab-move" class="tab-panel active">
                 <div class="glass adjustment-panel" id="adj-panel-move">
                     <div class="panel-header">
-                        <h2>Mover</h2>
+                        <h2>Mover Modelo</h2>
                     </div>
-                    <div class="panel-controls" style="transition: all 0.3s ease;">
+                    <div class="panel-controls">
                         <div class="control-row">
                             <span>Posición (X, Y, Z):</span>
                             <div class="nudge-group">
@@ -65,12 +66,14 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
+            <div id="tab-rotate" class="tab-panel">
                 <div class="glass adjustment-panel" id="adj-panel-rotate">
                     <div class="panel-header">
-                        <h2>Rotar</h2>
+                        <h2>Rotar Modelo</h2>
                     </div>
-                    <div class="panel-controls" style="transition: all 0.3s ease;">
+                    <div class="panel-controls">
                         <div class="control-row">
                             <span>Rotación (X, Y, Z):</span>
                             <div class="nudge-group">

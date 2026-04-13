@@ -399,17 +399,7 @@ function cleanupSession() {
 }
 
 function nudgeModel(axis, dir) {
-    const moveStepSelect = document.getElementById('move-step-select');
-    const rotateStepSelect = document.getElementById('rotate-step-select');
-    const scaleStepSelect = document.getElementById('scale-step-select');
-    
-    // Obtener valores de los selectores o usar defaults
-    const step = moveStepSelect ? parseFloat(moveStepSelect.value) : 0.05;
-    const rotDeg = rotateStepSelect ? parseFloat(rotateStepSelect.value) : 5;
-    const rot = rotDeg * (Math.PI / 180);
-    const scaleStep = scaleStepSelect ? parseFloat(scaleStepSelect.value) : 0.05;
-    const scaleFactor = dir > 0 ? (1 + scaleStep) : (1 / (1 + scaleStep));
-
+    const step = 0.05, rot = Math.PI / 36;
     if (axis === 'x') offsetGroup.position.x += step * dir;
     if (axis === 'y') offsetGroup.position.y += step * dir;
     if (axis === 'z') offsetGroup.position.z += step * dir;
@@ -417,13 +407,6 @@ function nudgeModel(axis, dir) {
     if (axis === 'ry') offsetGroup.rotation.y += rot * dir;
     if (axis === 'rz') offsetGroup.rotation.z += rot * dir;
     
-    if (axis === 's') {
-        offsetGroup.scale.multiplyScalar(scaleFactor);
-    }
-    if (axis === 'sx') offsetGroup.scale.x *= scaleFactor;
-    if (axis === 'sy') offsetGroup.scale.y *= scaleFactor;
-    if (axis === 'sz') offsetGroup.scale.z *= scaleFactor;
-
     saveModelAlignment(); // Persistir ajuste manual
 }
 
