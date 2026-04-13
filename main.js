@@ -113,10 +113,10 @@ function init() {
     if (btnQuickPanel) {
         btnQuickPanel.onclick = (e) => {
             if (e) { e.preventDefault(); e.stopPropagation(); }
-            
+
             // Lógica de "Interruptor": Abre o Cierra el panel de controles
             const isVisible = uiContainer.classList.contains('active') && !uiContainer.classList.contains('ui-minimized');
-            
+
             if (isVisible) {
                 // Si está abierto, lo minimizamos y escondemos
                 uiContainer.classList.remove('active');
@@ -189,11 +189,11 @@ function init() {
             optionalFeatures: ['dom-overlay'],
             domOverlay: { root: document.getElementById('ui-wrapper') }
         });
-        
+
         // Forzar asignación del ID en caso que sea el fallback anchor <a href> de iOS
         // para que CSS pueda ocultarlo.
         arButton.id = 'ARButton';
-        
+
         document.body.appendChild(arButton);
 
         // Lights
@@ -258,7 +258,7 @@ function init() {
 }
 
 async function initModelList() {
-    addModelToList('Bodega Ejemplo (A-S-2)', '/Ejemplos/A-S-2.ifc', 'ifc', true);
+    addModelToList('Cercha', '/Ejemplos/A-S-2.ifc', 'ifc', true);
     addModelToList('Caja 30x40x50', 'box-30-40-50', 'shape', true);
     addModelToList('Cilindro Ø60 x 40h', 'cylinder-60-40-1', 'shape', true);
     try {
@@ -345,7 +345,7 @@ function resetAlignmentGroups() {
 // --- Lógica de Persistencia ---
 function saveModelAlignment() {
     if (!currentModelUrl) return;
-    
+
     const data = {
         pivot: {
             pos: pivotGroup.position.toArray(),
@@ -359,7 +359,7 @@ function saveModelAlignment() {
         },
         timestamp: Date.now()
     };
-    
+
     localStorage.setItem(`dcad_align_${currentModelUrl}`, JSON.stringify(data));
     console.log(`Guardada persistencia para: ${currentModelUrl}`);
 }
@@ -367,20 +367,20 @@ function saveModelAlignment() {
 function restoreModelAlignment(url) {
     const saved = localStorage.getItem(`dcad_align_${url}`);
     if (!saved) return false;
-    
+
     try {
         const data = JSON.parse(saved);
-        
+
         // Restaurar Pivot (Alineación 3 puntos)
         pivotGroup.position.fromArray(data.pivot.pos);
         pivotGroup.quaternion.fromArray(data.pivot.rot);
         pivotGroup.scale.fromArray(data.pivot.scale);
-        
+
         // Restaurar Offset (Ajustes manuales)
         offsetGroup.position.fromArray(data.offset.pos);
         offsetGroup.quaternion.fromArray(data.offset.rot);
         offsetGroup.scale.fromArray(data.offset.scale);
-        
+
         isAligned = true;
         screenLog('♻️ Alineación restaurada');
         return true;
@@ -406,7 +406,7 @@ function nudgeModel(axis, dir) {
     if (axis === 'rx') offsetGroup.rotation.x += rot * dir;
     if (axis === 'ry') offsetGroup.rotation.y += rot * dir;
     if (axis === 'rz') offsetGroup.rotation.z += rot * dir;
-    
+
     saveModelAlignment(); // Persistir ajuste manual
 }
 
@@ -418,12 +418,12 @@ function loadModel(url) {
         new GLTFLoader().load(url, (g) => {
             try {
                 model = g.scene;
-                
+
                 // Forzar DoubleSide y desactivar frustumCulled para visibilidad en AR
-                model.traverse(c => { 
+                model.traverse(c => {
                     if (c.isMesh) {
                         c.material.side = THREE.DoubleSide;
-                        c.frustumCulled = false; 
+                        c.frustumCulled = false;
                     }
                 });
 
@@ -432,7 +432,7 @@ function loadModel(url) {
                 const size = box.getSize(new THREE.Vector3());
 
                 model.position.sub(center);
-                
+
                 // Auto-escala para GLB (frecuente en CAD exportado en mm)
                 if (size.length() > 500) {
                     offsetGroup.scale.set(0.001, 0.001, 0.001);
@@ -446,18 +446,18 @@ function loadModel(url) {
 
                 setTimeout(() => {
                     extractEdges(model);
-                    
+
                     const restored = restoreModelAlignment(url);
                     if (!restored) {
                         fitCameraToObject(offsetGroup);
-                        
+
                         // Si estamos en AR, ponerlo frente al usuario
                         if (renderer.xr.isPresenting && reticle.visible) {
                             pivotGroup.position.setFromMatrixPosition(reticle.matrix);
                             pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
                         }
                     }
-                    
+
                     screenLog('✅ GLB Listo');
                     resolve();
                 }, 100);
@@ -623,10 +623,10 @@ function generateShape(type, x, y, z) {
     model = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.7 }));
     model.position.set(0, my / 2, 0);
     offsetGroup.add(model);
-    
+
     // Extraer bordes para proyectar el contorno verde igual que los modelos CAD
     extractEdges(model);
-    
+
     fitCameraToObject(offsetGroup);
     screenLog(`✅ Figura generada (cm): ${x}x${y}x${z}`);
 }
@@ -1005,10 +1005,10 @@ function render(t, frame) {
             session.addEventListener('select', (event) => {
                 // Verificar si el toque fue sobre la interfaz DOM para ignorar el movimiento del 3D
                 // (WebXR standard check for dom-overlay)
-                const isUIInteraction = event.inputSource.targetRayMode === 'screen' && 
-                                        event.inputSource.domOverlayState && 
-                                        event.inputSource.domOverlayState.type !== 'none';
-                
+                const isUIInteraction = event.inputSource.targetRayMode === 'screen' &&
+                    event.inputSource.domOverlayState &&
+                    event.inputSource.domOverlayState.type !== 'none';
+
                 const alignTab = document.querySelector('.tab-btn[data-tab="tab-align"]');
                 const isAlignTabActive = alignTab && alignTab.classList.contains('active');
 
@@ -1018,13 +1018,13 @@ function render(t, frame) {
                     } else if (!isAlignTabActive && !isAligned) {
                         // Solo permitimos mover el modelo si NO estamos en alineación fina
                         // y el toque NO fue sobre un botón de la interfaz
-                        
+
                         screenLog("📍 Fijando posición...");
-                        
+
                         // Posicionamiento normal
                         pivotGroup.position.setFromMatrixPosition(reticle.matrix);
                         pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
-                        
+
                         // Opcional: Intentar usar Anchors si el navegador lo soporta para mayor estabilidad
                         if (frame.createAnchor) {
                             const pose = results[0].getPose(refSpace);
