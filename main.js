@@ -181,11 +181,7 @@ function init() {
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000);
         camera.position.set(5, 5, 5);
 
-        renderer = new THREE.WebGLRenderer({
-            antialias: true,
-            alpha: true,
-            logarithmicDepthBuffer: true // Ayuda con la precisión de profundidad en modelos grandes/pequeños
-        });
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.xr.enabled = true;
@@ -204,22 +200,12 @@ function init() {
 
         document.body.appendChild(arButton);
 
-        // Lights (Mejoradas para profundidad 3D)
-        scene.add(new THREE.AmbientLight(0xffffff, 0.7)); 
-        scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 0.5));
+        // Lights (Básica y estable para todos los dispositivos)
+        scene.add(new THREE.AmbientLight(0xffffff, 1.2)); 
         
         const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
         dirLight1.position.set(10, 20, 10);
         scene.add(dirLight1);
-        
-        // "Luz de minero" que sigue a la cámara para asegurar visibilidad frontal siempre
-        const headLight = new THREE.PointLight(0xffffff, 2.0, 150);
-        camera.add(headLight); // Se añade a la cámara
-        scene.add(camera);     // Se añade la cámara a la escena para que la luz funcione
-        
-        const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
-        dirLight2.position.set(-10, -5, -10);
-        scene.add(dirLight2);
 
         // Controls
         controls = new OrbitControls(camera, renderer.domElement);
@@ -542,11 +528,11 @@ function loadIFC(url) {
                     model.traverse(c => {
                         if (c.isMesh) {
                             meshCount++;
-                            c.material = new THREE.MeshStandardMaterial({
-                                color: 0x94a3b8,
+                            c.material = new THREE.MeshPhongMaterial({ 
+                                color: 0x94a3b8, 
                                 side: THREE.DoubleSide,
-                                metalness: 0.1,
-                                roughness: 0.5
+                                transparent: true,
+                                opacity: 0.8
                             });
                             c.frustumCulled = false;
                         }
@@ -575,21 +561,12 @@ function loadIFC(url) {
                         extractEdges(model);
                         restoreModelAlignment(url);
                         
-                        // Forzar visibilidad del sólido
-                        if (model) model.visible = true;
-
-                        // Si NO estamos en AR activo, forzar el centrado de cámara
+                        // Centrar cámara en el modelo
                         if (!renderer.xr.isPresenting) {
-                            setTimeout(() => {
-                                fitCameraToObject(pivotGroup);
-                                if (model) model.visible = true; // Asegurar sólido
-                                screenLog('🔍 Ajuste fino de cámara');
-                            }, 500);
-                        } else if (reticle.visible) {
-                            // Si estamos en AR colocar en retícula
-                            pivotGroup.position.setFromMatrixPosition(reticle.matrix);
-                            pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
+                            fitCameraToObject(pivotGroup);
                         }
+                        
+                        if (model) model.visible = true;
                         resolve();
                     }, 300);
                 } catch (err) {
