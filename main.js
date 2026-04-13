@@ -612,18 +612,23 @@ function fitCameraToObject(obj) {
 
 function generateShape(type, x, y, z) {
     resetAlignmentGroups();
-    let geo = type === 'box' ? new THREE.BoxGeometry(x, y, z) :
-        type === 'cylinder' ? new THREE.CylinderGeometry(x / 2, x / 2, y, 32) :
-            new THREE.SphereGeometry(x / 2, 32, 32);
+    const toMeters = 0.01;
+    const mx = x * toMeters;
+    const my = y * toMeters;
+    const mz = z * toMeters;
+
+    let geo = type === 'box' ? new THREE.BoxGeometry(mx, my, mz) :
+        type === 'cylinder' ? new THREE.CylinderGeometry(mx / 2, mx / 2, my, 32) :
+            new THREE.SphereGeometry(mx / 2, 32, 32);
     model = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.7 }));
-    model.position.set(0, y / 2, 0);
+    model.position.set(0, my / 2, 0);
     offsetGroup.add(model);
     
     // Extraer bordes para proyectar el contorno verde igual que los modelos CAD
     extractEdges(model);
     
     fitCameraToObject(offsetGroup);
-    screenLog(`✅ Figura generada: ${x}x${y}x${z}`);
+    screenLog(`✅ Figura generada (cm): ${x}x${y}x${z}`);
 }
 
 function initReticle() {
