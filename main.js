@@ -201,10 +201,10 @@ function init() {
         document.body.appendChild(arButton);
 
         // Lights (Básica y estable para todos los dispositivos)
-        scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-
+        scene.add(new THREE.AmbientLight(0xffffff, 1.8)); 
+        
         const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
-        dirLight1.position.set(10, 20, 10);
+        dirLight1.position.set(20, 30, 10);
         scene.add(dirLight1);
 
         // Controls
@@ -528,11 +528,12 @@ function loadIFC(url) {
                     model.traverse(c => {
                         if (c.isMesh) {
                             meshCount++;
-                            c.material = new THREE.MeshPhongMaterial({
-                                color: 0x94a3b8,
-                                side: THREE.DoubleSide,
-                                transparent: true,
-                                opacity: 0.8
+                            c.material = new THREE.MeshPhongMaterial({ 
+                                color: 0xcccccc, 
+                                side: THREE.FrontSide, // FrontSide es más estable para volumen sólido
+                                flatShading: true,     // Resalta mucho más las caras 3D
+                                transparent: false,
+                                opacity: 1.0
                             });
                             c.frustumCulled = false;
                         }
@@ -558,15 +559,15 @@ function loadIFC(url) {
                     screenLog('✨ ¡PROYECCIÓN LISTA!');
 
                     setTimeout(() => {
+                        // Asegurar que el modelo es visible antes de extraer bordes
+                        if (model) model.visible = true;
                         extractEdges(model);
                         restoreModelAlignment(url);
-
+                        
                         // Centrar cámara en el modelo
                         if (!renderer.xr.isPresenting) {
                             fitCameraToObject(pivotGroup);
                         }
-
-                        if (model) model.visible = true;
                         resolve();
                     }, 300);
                 } catch (err) {
