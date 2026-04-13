@@ -201,14 +201,19 @@ function init() {
         document.body.appendChild(arButton);
 
         // Lights (Mejoradas para profundidad 3D)
-        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-        scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 0.8)); // Mejor percepción de caras superior/inferior
-
-        const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.2);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7)); 
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 0.5));
+        
+        const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
         dirLight1.position.set(10, 20, 10);
         scene.add(dirLight1);
-
-        const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.6);
+        
+        // "Luz de minero" que sigue a la cámara para asegurar visibilidad frontal siempre
+        const headLight = new THREE.PointLight(0xffffff, 1.2, 100);
+        camera.add(headLight); // Se añade a la cámara
+        scene.add(camera);     // Se añade la cámara a la escena para que la luz funcione
+        
+        const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
         dirLight2.position.set(-10, -5, -10);
         scene.add(dirLight2);
 
@@ -268,7 +273,7 @@ function init() {
 }
 
 async function initModelList() {
-    addModelToList('Cercha3', '/Ejemplos/A-S-2.ifc', 'ifc', true);
+    addModelToList('Cercha', '/Ejemplos/A-S-2.ifc', 'ifc', true);
     addModelToList('Caja 30x40x50', 'box-30-40-50', 'shape', true);
     addModelToList('Cilindro Ø60 x 40h', 'cylinder-60-40-1', 'shape', true);
     try {
@@ -456,17 +461,22 @@ function loadModel(url) {
 
                 setTimeout(() => {
                     extractEdges(model);
-                    const restored = restoreModelAlignment(url);
-
+                    restoreModelAlignment(url);
+                    
+                    // Forzar visibilidad del sólido
+                    if (model) model.visible = true;
+                    
                     // Si NO estamos en AR, forzar que la cámara apunte al modelo
                     if (!renderer.xr.isPresenting) {
                         fitCameraToObject(pivotGroup);
-                    } else if (!restored && reticle.visible) {
-                        // Si estamos en AR y no hay restauración, poner frente al usuario
+                        // Reintento para móviles donde el layout puede cambiar al cargar
+                        setTimeout(() => fitCameraToObject(pivotGroup), 300);
+                    } else if (reticle.visible) {
+                        // Si estamos en AR, poner frente al usuario
                         pivotGroup.position.setFromMatrixPosition(reticle.matrix);
                         pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
                     }
-
+                    
                     screenLog('✅ GLB Listo');
                     resolve();
                 }, 100);
@@ -557,13 +567,18 @@ function loadIFC(url) {
 
                     setTimeout(() => {
                         extractEdges(model);
-                        const restored = restoreModelAlignment(url);
+                        restoreModelAlignment(url);
+                        
+                        // Forzar visibilidad del sólido
+                        if (model) model.visible = true;
 
                         // Si NO estamos en AR activo, forzar el centrado de cámara
                         if (!renderer.xr.isPresenting) {
                             fitCameraToObject(pivotGroup);
-                        } else if (!restored && reticle.visible) {
-                            // Si estamos en AR y no hay posición guardada, colocar en retícula
+                            // Segundo intento para estabilidad en móviles
+                            setTimeout(() => fitCameraToObject(pivotGroup), 300);
+                        } else if (reticle.visible) {
+                            // Si estamos en AR colocar en retícula
                             pivotGroup.position.setFromMatrixPosition(reticle.matrix);
                             pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
                         }
