@@ -160,16 +160,12 @@ function init() {
         };
     }
 
-    // Refresh Button (Ahora Centrar Vista)
+    // Refresh Button
     const refreshBtn = document.getElementById('refresh-btn');
     if (refreshBtn) {
         refreshBtn.onclick = () => {
-            if (pivotGroup) {
-                fitCameraToObject(pivotGroup);
-                screenLog('🎯 Vista centrada');
-            } else {
-                window.location.reload();
-            }
+            screenLog('🔄 Recargando aplicación...');
+            setTimeout(() => window.location.reload(), 300);
         };
     }
 
@@ -200,12 +196,11 @@ function init() {
 
         document.body.appendChild(arButton);
 
-        // Lights (Básica y estable para todos los dispositivos)
-        scene.add(new THREE.AmbientLight(0xffffff, 1.8));
-
-        const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
-        dirLight1.position.set(20, 30, 10);
-        scene.add(dirLight1);
+        // Lights
+        scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+        dirLight.position.set(10, 20, 10);
+        scene.add(dirLight);
 
         // Controls
         controls = new OrbitControls(camera, renderer.domElement);
@@ -225,6 +220,38 @@ function init() {
         ifcLoader.ifcManager.setWasmPath('/');
         ifcLoader.ifcManager.useWebWorkers(false);
         screenLog('Visor 3D: Motor Local Listo');
+
+        // --- Eventos de Sesión AR para UI ---
+        renderer.xr.addEventListener('sessionstart', () => {
+            screenLog('🚀 Sesión AR Iniciada');
+            document.body.classList.add('ar-active');
+            document.documentElement.classList.add('ar-active');
+            uiContainer.classList.add('ar-mode');
+
+            // Forzar visibilidad de la barra inferior
+            const bottomBar = document.getElementById('unified-bottom-controls');
+            if (bottomBar) {
+                bottomBar.style.display = 'flex';
+                bottomBar.style.opacity = '1';
+                bottomBar.style.visibility = 'visible';
+            }
+        });
+
+        renderer.xr.addEventListener('sessionend', () => {
+            screenLog('🚪 Sesión AR Finalizada');
+            cleanupSession();
+
+            // Restaurar fondo original
+            scene.background = new THREE.Color(0x0f172a);
+            renderer.setClearColor(0x0f172a, 1);
+
+            // Forzar reflow/resize para evitar problemas de layout en iOS tras salir de AR
+            setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+                fitCameraToObject(pivotGroup);
+            }, 200);
+        });
+
     } catch (err) {
         screenLog('ERR-INIT: ' + err.message, true);
     }
@@ -240,11 +267,18 @@ function init() {
         };
     });
 
-    // Shading toggle
-    const shadeCheck = document.getElementById('shading-toggle');
-    if (shadeCheck) shadeCheck.onchange = () => {
-        if (model) model.visible = shadeCheck.checked;
+    // Shading toggle (Synced)
+    const shadeMove = document.getElementById('shading-toggle-move');
+    const shadeRotate = document.getElementById('shading-toggle-rotate');
+    
+    const syncShading = (checked) => {
+        if (model) model.visible = checked;
+        if (shadeMove) shadeMove.checked = checked;
+        if (shadeRotate) shadeRotate.checked = checked;
     };
+
+    if (shadeMove) shadeMove.onchange = () => syncShading(shadeMove.checked);
+    if (shadeRotate) shadeRotate.onchange = () => syncShading(shadeRotate.checked);
 
     // Upload
     const uploadBtn = document.getElementById('upload-btn');
@@ -263,7 +297,7 @@ function init() {
 }
 
 async function initModelList() {
-    addModelToList('Cercha7', '/Ejemplos/A-S-2.ifc', 'ifc', true);
+    addModelToList('Cercha', '/Ejemplos/A-S-2.ifc', 'ifc', true);
     addModelToList('Caja 30x40x50', 'box-30-40-50', 'shape', true);
     addModelToList('Cilindro Ø60 x 40h', 'cylinder-60-40-1', 'shape', true);
     try {
@@ -397,20 +431,28 @@ function restoreModelAlignment(url) {
 
 function cleanupSession() {
     // Limpiar clases de estado AR/UI
-    document.body.classList.remove('ar-active', 'ui-overlay-active');
-    // Resetear elementos de control
-    const controls = document.querySelectorAll('.bottom-controls-bar');
-    controls.forEach(c => c.style.display = 'none');
+    document.body.classList.remove('ar-active');
+    document.documentElement.classList.remove('ar-active');
+    if (uiContainer) uiContainer.classList.remove('ar-mode', 'ui-minimized');
+
+    const bottomControls = document.getElementById('unified-bottom-controls');
+    if (bottomControls) bottomControls.style.display = 'flex';
 }
 
 function nudgeModel(axis, dir) {
-    const step = 0.05, rot = Math.PI / 36;
+    const moveStepInput = document.getElementById('move-step-input');
+    const rotateStepInput = document.getElementById('rotate-step-input');
+
+    const step = moveStepInput ? parseFloat(moveStepInput.value) : 0.05;
+    const rotDeg = rotateStepInput ? parseFloat(rotateStepInput.value) : 5;
+    const rotRad = (rotDeg * Math.PI) / 180;
+
     if (axis === 'x') offsetGroup.position.x += step * dir;
     if (axis === 'y') offsetGroup.position.y += step * dir;
     if (axis === 'z') offsetGroup.position.z += step * dir;
-    if (axis === 'rx') offsetGroup.rotation.x += rot * dir;
-    if (axis === 'ry') offsetGroup.rotation.y += rot * dir;
-    if (axis === 'rz') offsetGroup.rotation.z += rot * dir;
+    if (axis === 'rx') offsetGroup.rotation.x += rotRad * dir;
+    if (axis === 'ry') offsetGroup.rotation.y += rotRad * dir;
+    if (axis === 'rz') offsetGroup.rotation.z += rotRad * dir;
 
     saveModelAlignment(); // Persistir ajuste manual
 }
@@ -451,24 +493,29 @@ function loadModel(url) {
 
                 setTimeout(() => {
                     extractEdges(model);
-                    restoreModelAlignment(url);
 
-                    // Forzar visibilidad del sólido
-                    extractEdges(model);
-                    if (model) model.visible = true;
-                    if (!renderer.xr.isPresenting) {
-                        fitCameraToObject(pivotGroup);
+                    const restored = restoreModelAlignment(url);
+                    if (!restored) {
+                        fitCameraToObject(offsetGroup);
+
+                        // Si estamos en AR, ponerlo frente al usuario
+                        if (renderer.xr.isPresenting && reticle.visible) {
+                            pivotGroup.position.setFromMatrixPosition(reticle.matrix);
+                            pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
+                        }
                     }
+
                     screenLog('✅ GLB Listo');
                     resolve();
-                } catch (e) {
-                    screenLog(`❌ Error procesando GLB: ${e.message}`, true);
-                    reject(e);
-                }
-            }, undefined, (err) => {
-                screenLog('❌ Error de red cargando GLB', true);
-                reject(err);
-            });
+                }, 100);
+            } catch (e) {
+                screenLog(`❌ Error procesando GLB: ${e.message}`, true);
+                reject(e);
+            }
+        }, undefined, (err) => {
+            screenLog('❌ Error de red cargando GLB', true);
+            reject(err);
+        });
     });
 }
 
@@ -517,13 +564,7 @@ function loadIFC(url) {
                     model.traverse(c => {
                         if (c.isMesh) {
                             meshCount++;
-                            c.material = new THREE.MeshPhongMaterial({
-                                color: 0xcccccc,
-                                side: THREE.FrontSide, // FrontSide es más estable para volumen sólido
-                                flatShading: true,     // Resalta mucho más las caras 3D
-                                transparent: false,
-                                opacity: 1.0
-                            });
+                            c.material = new THREE.MeshPhongMaterial({ color: 0x94a3b8, side: THREE.DoubleSide });
                             c.frustumCulled = false;
                         }
                     });
@@ -547,12 +588,20 @@ function loadIFC(url) {
 
                     screenLog('✨ ¡PROYECCIÓN LISTA!');
 
-                    if (model) model.visible = true;
-                    extractEdges(model);
-                    if (!renderer.xr.isPresenting) {
-                        fitCameraToObject(pivotGroup);
-                    }
-                    resolve();
+                    setTimeout(() => {
+                        extractEdges(model);
+                        const restored = restoreModelAlignment(url);
+                        if (!restored) {
+                            fitCameraToObject(offsetGroup);
+
+                            // Si estamos en AR, ponerlo frente al usuario
+                            if (renderer.xr.isPresenting && reticle.visible) {
+                                pivotGroup.position.setFromMatrixPosition(reticle.matrix);
+                                pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
+                            }
+                        }
+                        resolve();
+                    }, 300);
                 } catch (err) {
                     screenLog(`❌ Error 3D: ${err.message}`, true);
                     reject(err);
@@ -600,53 +649,28 @@ async function handleUpload(e) {
 }
 
 function fitCameraToObject(obj) {
-    if (!obj) return;
     const box = new THREE.Box3().setFromObject(obj);
     const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const fov = camera.fov * (Math.PI / 180);
-    let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
-
-    // Ajuste para móviles (Portrait)
-    if (camera.aspect < 1) {
-        cameraZ = cameraZ / camera.aspect;
-    }
-
-    cameraZ *= 1.8; // Margen de seguridad para no quedar pegado al borde
-
-    camera.position.set(center.x + cameraZ * 0.5, center.y + cameraZ * 0.5, center.z + cameraZ);
+    const dist = box.getSize(new THREE.Vector3()).length() || 5;
+    camera.position.set(center.x + dist, center.y + dist, center.z + dist);
     camera.lookAt(center);
-
-    if (controls) {
-        controls.target.copy(center);
-        controls.update();
-    }
-
-    camera.updateProjectionMatrix();
-    screenLog('🔍 Vista centrada');
+    if (controls) { controls.target.copy(center); controls.update(); }
 }
 
 function generateShape(type, x, y, z) {
     resetAlignmentGroups();
-    const toMeters = 0.01;
-    const mx = x * toMeters;
-    const my = y * toMeters;
-    const mz = z * toMeters;
-
-    let geo = type === 'box' ? new THREE.BoxGeometry(mx, my, mz) :
-        type === 'cylinder' ? new THREE.CylinderGeometry(mx / 2, mx / 2, my, 32) :
-            new THREE.SphereGeometry(mx / 2, 32, 32);
+    let geo = type === 'box' ? new THREE.BoxGeometry(x, y, z) :
+        type === 'cylinder' ? new THREE.CylinderGeometry(x / 2, x / 2, y, 32) :
+            new THREE.SphereGeometry(x / 2, 32, 32);
     model = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.7 }));
-    model.position.set(0, my / 2, 0);
+    model.position.set(0, y / 2, 0);
     offsetGroup.add(model);
 
     // Extraer bordes para proyectar el contorno verde igual que los modelos CAD
     extractEdges(model);
 
     fitCameraToObject(offsetGroup);
-    screenLog(`✅ Figura generada (cm): ${x}x${y}x${z}`);
+    screenLog(`✅ Figura generada: ${x}x${y}x${z}`);
 }
 
 function initReticle() {
@@ -698,14 +722,7 @@ function setupAlignmentHandlers() {
     renderer.domElement.addEventListener('pointerup', onPointerUp);
     renderer.domElement.addEventListener('pointerleave', onPointerUp);
 
-    // Initializer slider offset
-    const offsetSlider = document.getElementById('drag-offset-input');
-    const offsetDisplay = document.getElementById('offset-val-display');
-    if (offsetSlider && offsetDisplay) {
-        offsetSlider.oninput = (e) => {
-            offsetDisplay.textContent = e.target.value;
-        };
-    }
+    // El desfase ahora es un input numérico directo y no requiere sincronización de etiquetas
 }
 
 function captureRealPoint() {
@@ -973,51 +990,7 @@ function render(t, frame) {
         const refSpace = renderer.xr.getReferenceSpace();
 
         if (!hitTestSourceRequested) {
-            // Preparar escena para AR (Fondo transparente para ver la cámara)
-            scene.background = null;
-            renderer.setClearColor(0x000000, 0);
-            document.body.classList.add('ar-active');
-            document.documentElement.classList.add('ar-active');
-
             session.requestReferenceSpace('viewer').then(rs => session.requestHitTestSource({ space: rs }).then(s => hitTestSource = s));
-
-            session.addEventListener('end', () => {
-                hitTestSourceRequested = false;
-                hitTestSource = null;
-                reticle.visible = false;
-
-                // Limpiar miniatura de AR al salir
-                uiContainer.classList.remove('ar-mode', 'ui-minimized');
-                const btnArToggle = document.getElementById('ar-toggle-ui-btn');
-                if (btnArToggle) btnArToggle.textContent = '➖ Ocultar Panel';
-
-                document.body.classList.remove('ar-active');
-                document.documentElement.classList.remove('ar-active');
-                // Restaurar fondo original al salir de AR
-                scene.background = new THREE.Color(0x0f172a);
-                renderer.setClearColor(0x0f172a, 1);
-
-                // Chrome en Android (y otros navegadores WebXR) inyecta 'display: none'
-                // al contenedor de domOverlay al finalizar la sesión AR.
-                // Restablecemos el display para que vuelva a ser visible todo el UI:
-                uiContainer.style.display = '';
-                const uiWrapper = document.getElementById('ui-wrapper');
-                if (uiWrapper) uiWrapper.style.display = '';
-                const bottomControls = document.getElementById('unified-bottom-controls');
-                if (bottomControls) bottomControls.style.display = '';
-
-                // Volver a enfocar la cámara al modelo y reactualizar el render para la pantalla normal
-                setTimeout(() => {
-                    onWindowResize(); // Restaura la relación de aspecto si hubo cambio de rotación de pantalla
-                    fitCameraToObject(pivotGroup);
-                    if (controls) {
-                        controls.enabled = true;
-                        controls.update();
-                    }
-                }, 100);
-            });
-
-            uiContainer.classList.add('ar-mode');
             hitTestSourceRequested = true;
 
             session.addEventListener('select', (event) => {

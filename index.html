@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>DCAD - AR Edge Projection</title>
     <link rel="stylesheet" href="./style.css">
 </head>
@@ -39,7 +39,7 @@
             <div id="ui-container">
             <!-- Tab Navigation (Tabs are now secondary or inside panel) -->
             <div class="tabs-nav">
-                <button class="tab-btn active" data-tab="tab-move">🏠 Mover</button>
+                <button class="tab-btn active" data-tab="tab-adjust">↔️ Mover</button>
                 <button class="tab-btn" data-tab="tab-rotate">🔄 Rotar</button>
                 <button class="tab-btn" data-tab="tab-align">📍 Alineación</button>
                 <button class="tab-btn" data-tab="tab-models">📦 Modelos</button>
@@ -47,53 +47,96 @@
             </div>
 
             <!-- Tab Contents -->
-            <div id="tab-move" class="tab-panel active">
-                <div class="glass adjustment-panel" id="adj-panel-move">
-                    <div class="panel-header">
-                        <h2>Mover Modelo</h2>
+            <div id="tab-adjust" class="tab-panel active">
+                <div class="glass adjustment-panel" id="adj-panel">
+                    <div class="panel-header" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                        <h2 style="margin: 0; font-size: 0.9rem;">Posición</h2>
+                        <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.2); padding: 3px 6px 3px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                            <span style="font-size: 0.8rem;">📏</span>
+                            <div style="display: flex; align-items: center;">
+                                <input type="number" id="move-step-input" value="0.05" step="0.01" onfocus="this.select()"
+                                    style="width: 35px; padding: 0; text-align: right; background: transparent; border: none; font-weight: 700; color: white; -webkit-appearance: none; margin: 0; font-size: 0.85rem;">
+                                <span style="font-size: 0.85rem; font-weight: 700; color: white; margin-left: 1px;">m</span>
+                            </div>
+                        </div>
+                        <label class="switch" style="transform: scale(0.8);">
+                            <input type="checkbox" id="panel-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
                     </div>
-                    <div class="panel-controls">
+                    <div id="panel-controls">
                         <div class="control-row">
-                            <span>Posición (X, Y, Z):</span>
-                            <div class="nudge-group">
+                            <div class="nudge-group-bis">
                                 <button class="nudge-btn" data-axis="x" data-dir="1">X+</button>
                                 <button class="nudge-btn" data-axis="y" data-dir="1">Y+</button>
                                 <button class="nudge-btn" data-axis="z" data-dir="1">Z+</button>
+                            </div>
+                            <div class="nudge-group-bis">
                                 <button class="nudge-btn" data-axis="x" data-dir="-1">X-</button>
                                 <button class="nudge-btn" data-axis="y" data-dir="-1">Y-</button>
                                 <button class="nudge-btn" data-axis="z" data-dir="-1">Z-</button>
                             </div>
+                        </div>
+                        <div class="control-row"
+                            style="margin-top: 10px; flex-direction: row; justify-content: space-between; align-items: center;">
+                            <span>Sólido:</span>
+                            <label class="switch">
+                                <input type="checkbox" id="shading-toggle-move" checked>
+                                <span class="slider"></span>
+                            </label>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div id="tab-rotate" class="tab-panel">
-                <div class="glass adjustment-panel" id="adj-panel-rotate">
-                    <div class="panel-header">
-                        <h2>Rotar Modelo</h2>
-                    </div>
-                    <div class="panel-controls">
-                        <div class="control-row">
-                            <span>Rotación (X, Y, Z):</span>
-                            <div class="nudge-group">
-                                <button class="nudge-btn" data-axis="rx" data-dir="1">RX+</button>
-                                <button class="nudge-btn" data-axis="ry" data-dir="1">RY+</button>
-                                <button class="nudge-btn" data-axis="rz" data-dir="1">RZ+</button>
-                                <button class="nudge-btn" data-axis="rx" data-dir="-1">RX-</button>
-                                <button class="nudge-btn" data-axis="ry" data-dir="-1">RY-</button>
-                                <button class="nudge-btn" data-axis="rz" data-dir="-1">RZ-</button>
+                <div class="glass adjustment-panel">
+                    <div class="panel-header" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                        <h2 style="margin: 0; font-size: 0.9rem;">Rotación</h2>
+                        <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.2); padding: 3px 6px 3px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                            <span style="font-size: 0.8rem;">🔄</span>
+                            <div style="display: flex; align-items: center;">
+                                <input type="number" id="rotate-step-input" value="5" step="1" onfocus="this.select()"
+                                    style="width: 25px; padding: 0; text-align: right; background: transparent; border: none; font-weight: 700; color: white; -webkit-appearance: none; margin: 0; font-size: 0.85rem;">
+                                <span style="font-size: 0.85rem; font-weight: 700; color: white; margin-left: -2px;">°</span>
                             </div>
                         </div>
+                    </div>
+                    <div class="control-row">
+                        <div class="nudge-group-bis">
+                            <button class="nudge-btn" data-axis="rx" data-dir="1">RX+</button>
+                            <button class="nudge-btn" data-axis="ry" data-dir="1">RY+</button>
+                            <button class="nudge-btn" data-axis="rz" data-dir="1">RZ+</button>
+                        </div>
+                        <div class="nudge-group-bis">
+                            <button class="nudge-btn" data-axis="rx" data-dir="-1">RX-</button>
+                            <button class="nudge-btn" data-axis="ry" data-dir="-1">RY-</button>
+                            <button class="nudge-btn" data-axis="rz" data-dir="-1">RZ-</button>
+                        </div>
+                    </div>
+                    <div class="control-row"
+                        style="margin-top: 10px; flex-direction: row; justify-content: space-between; align-items: center;">
+                        <span>Sólido:</span>
+                        <label class="switch">
+                            <input type="checkbox" id="shading-toggle-rotate" checked>
+                            <span class="slider"></span>
+                        </label>
                     </div>
                 </div>
             </div>
 
             <div id="tab-align" class="tab-panel">
                 <div class="glass adjustment-panel">
-                    <h2 style="margin: 0; font-size: 1rem; color: #60a5fa;">Alineación de 3 Puntos</h2>
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                        <h2 style="margin: 0; font-size: 1rem; color: #60a5fa;">Alineación 3 Puntos</h2>
+                        <div style="display: flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                            <span style="font-size: 0.9rem;">📏</span>
+                            <input type="number" id="drag-offset-input" value="5" step="1" onfocus="this.select()"
+                                style="width: 45px; padding: 2px 4px; text-align: center; background: transparent; border: none; font-weight: 700; color: white; -webkit-appearance: none; margin: 0;">
+                        </div>
+                    </div>
 
-                    <div class="control-row" style="flex-direction: row; align-items: center; gap: 10px;">
+                    <div class="control-row" style="margin-top: 10px; flex-direction: row; align-items: center; gap: 10px;">
                         <span style="min-width: 60px;">Modelo:</span>
                         <div class="nudge-group" style="grid-template-columns: repeat(3, 1fr); flex: 1;">
                             <button id="p-mod-1" class="point-btn" data-type="model" data-idx="0">M1: ---</button>
@@ -111,13 +154,6 @@
                         </div>
                     </div>
 
-                    <div class="control-row" style="margin-top: 10px; display: flex; flex-direction: column; gap: 5px;">
-                        <span style="display: flex; justify-content: space-between;">
-                            Desfase de selección (px): <span id="offset-val-display">10</span>
-                        </span>
-                        <input type="range" id="drag-offset-input" min="0.1" max="100" step="0.1" value="10" style="padding: 0;">
-                    </div>
-
                     <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                         <button id="btn-calculate-align" style="background: #10b981;">Alinear</button>
                         <button id="btn-reset-align" style="background: #ef4444;">Reset</button>
@@ -127,16 +163,7 @@
 
             <div id="tab-models" class="tab-panel">
                 <div class="glass examples-panel">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h2 style="margin: 0;">Modelos Cargados</h2>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 0.8rem; opacity: 0.8;">Ver Sólido</span>
-                            <label class="switch">
-                                <input type="checkbox" id="shading-toggle" checked>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
+                    <h2>Modelos Cargados</h2>
                     <div id="loaded-models-list" class="model-list">
                         <!-- Items will be generated here -->
                     </div>

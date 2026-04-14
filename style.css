@@ -20,6 +20,7 @@ body.ar-active #app,
 body.ar-active #canvas-container {
   background: transparent !important;
   background-color: transparent !important;
+  overflow: hidden;
 }
 
 body {
@@ -86,7 +87,7 @@ p {
 }
 
 #ui-container {
-  position: absolute;
+  position: fixed;
   top: 20px;
   right: 20px;
   z-index: 1000;
@@ -210,8 +211,15 @@ input {
 
 .nudge-group {
   display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+
+.nudge-group-bis {
+  display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+  margin-bottom: 8px;
 }
 
 .nudge-btn {
@@ -319,7 +327,7 @@ input:checked+.slider:before {
 }
 
 #ui-container.ar-mode {
-  position: absolute;
+  position: fixed;
   bottom: 20px;
   right: 15px;
   left: 15px;
@@ -468,8 +476,8 @@ button:hover {
 
 /* Floating Toggle Button */
 .fab-btn {
-  position: absolute;
-  bottom: calc(20px + env(safe-area-inset-bottom));
+  position: fixed;
+  bottom: 20px;
   right: 20px;
   width: 50px;
   height: 50px;
@@ -605,15 +613,17 @@ button:hover {
 }
 /* Bottom Bar Unificada (Consistente en 3D y AR) */
 .bottom-controls-bar {
-  position: absolute;
-  bottom: calc(20px + env(safe-area-inset-bottom));
-  left: 15px;
-  right: 15px;
+  position: absolute; /* Cambiado de fixed a absolute para mejor compatibilidad con dom-overlay */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 15px 15px calc(15px + env(safe-area-inset-bottom, 0px));
   display: flex;
   justify-content: center;
   gap: 12px;
-  z-index: 1000010;
+  z-index: 2000000; /* Aumentado significativamente */
   pointer-events: none; /* No bloquea el visor 3D */
+  -webkit-transform: translate3d(0, 0, 0); /* Forzar capa de hardware en iOS */
 }
 
 .bottom-controls-bar button, 
@@ -685,7 +695,7 @@ body.ar-active #refresh-btn,
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
-  bottom: 90px; /* Separar del panel de botones */
+  bottom: 110px; /* Aumentado para no traslapar con la barra de botones en iPhone */
 }
 
 #ui-container.ar-mode.ui-minimized {
