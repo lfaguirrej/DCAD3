@@ -430,13 +430,40 @@ function restoreModelAlignment(url) {
 }
 
 function cleanupSession() {
+    screenLog('Limpiando estado de interfaz...');
+    
     // Limpiar clases de estado AR/UI
     document.body.classList.remove('ar-active');
     document.documentElement.classList.remove('ar-active');
-    if (uiContainer) uiContainer.classList.remove('ar-mode', 'ui-minimized');
+    
+    if (uiContainer) {
+        uiContainer.classList.remove('ar-mode', 'ui-minimized');
+        // Asegurarse de que si el panel estaba abierto en AR, conserve su estado o sea visible
+        uiContainer.style.display = ''; 
+        uiContainer.style.visibility = '';
+        uiContainer.style.opacity = '';
+    }
+
+    const uiWrapper = document.getElementById('ui-wrapper');
+    if (uiWrapper) {
+        uiWrapper.style.display = 'block';
+        uiWrapper.style.visibility = 'visible';
+        uiWrapper.style.opacity = '1';
+        uiWrapper.style.pointerEvents = 'none'; // Permitir toques en el canvas inferior
+    }
 
     const bottomControls = document.getElementById('unified-bottom-controls');
-    if (bottomControls) bottomControls.style.display = 'flex';
+    if (bottomControls) {
+        bottomControls.style.display = 'flex';
+        bottomControls.style.visibility = 'visible';
+        bottomControls.style.opacity = '1';
+    }
+
+    // Forzar un reflow global
+    window.scrollTo(0, 0);
+    setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+    }, 100);
 }
 
 function nudgeModel(axis, dir) {
@@ -657,7 +684,12 @@ function fitCameraToObject(obj) {
     if (controls) { controls.target.copy(center); controls.update(); }
 }
 
-function generateShape(type, x, y, z) {
+function generateShape(type, x_cm, y_cm, z_cm) {
+    // Convertir de cm a metros para el motor 3D
+    const x = x_cm / 100;
+    const y = y_cm / 100;
+    const z = z_cm / 100;
+
     resetAlignmentGroups();
     let geo = type === 'box' ? new THREE.BoxGeometry(x, y, z) :
         type === 'cylinder' ? new THREE.CylinderGeometry(x / 2, x / 2, y, 32) :
@@ -670,7 +702,7 @@ function generateShape(type, x, y, z) {
     extractEdges(model);
 
     fitCameraToObject(offsetGroup);
-    screenLog(`✅ Figura generada: ${x}x${y}x${z}`);
+    screenLog(`✅ Figura (m): ${x.toFixed(3)}x${y.toFixed(3)}x${z.toFixed(3)}`);
 }
 
 function initReticle() {
