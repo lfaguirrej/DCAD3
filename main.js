@@ -177,10 +177,11 @@ function init() {
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000);
         camera.position.set(5, 5, 5);
 
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true });
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.xr.enabled = true;
+        renderer.outputColorSpace = THREE.SRGBColorSpace; // Modern color handling
         container.appendChild(renderer.domElement);
 
         // AR Setup
@@ -197,10 +198,16 @@ function init() {
         document.body.appendChild(arButton);
 
         // Lights
-        scene.add(new THREE.AmbientLight(0xffffff, 1.5));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.0));
+        
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
         dirLight.position.set(10, 20, 10);
         scene.add(dirLight);
+
+        const pointLight = new THREE.PointLight(0xffffff, 1);
+        pointLight.position.set(-10, -10, -10);
+        scene.add(pointLight);
 
         // Controls
         controls = new OrbitControls(camera, renderer.domElement);
@@ -533,6 +540,11 @@ function loadModel(url) {
                     }
 
                     screenLog('✅ GLB Listo');
+                    
+                    // Sincronizar visibilidad con el toggle de la UI
+                    const shadeToggle = document.getElementById('shading-toggle-move');
+                    if (shadeToggle) syncShading(shadeToggle.checked);
+                    
                     resolve();
                 }, 100);
             } catch (e) {
@@ -591,7 +603,12 @@ function loadIFC(url) {
                     model.traverse(c => {
                         if (c.isMesh) {
                             meshCount++;
-                            c.material = new THREE.MeshPhongMaterial({ color: 0x94a3b8, side: THREE.DoubleSide });
+                            c.material = new THREE.MeshStandardMaterial({ 
+                                color: 0x94a3b8, 
+                                side: THREE.DoubleSide,
+                                roughness: 0.5,
+                                metalness: 0.2
+                            });
                             c.frustumCulled = false;
                         }
                     });
@@ -627,6 +644,11 @@ function loadIFC(url) {
                                 pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
                             }
                         }
+
+                        // Sincronizar visibilidad con el toggle de la UI
+                        const shadeToggle = document.getElementById('shading-toggle-move');
+                        if (shadeToggle) syncShading(shadeToggle.checked);
+
                         resolve();
                     }, 300);
                 } catch (err) {
@@ -694,7 +716,13 @@ function generateShape(type, x_cm, y_cm, z_cm) {
     let geo = type === 'box' ? new THREE.BoxGeometry(x, y, z) :
         type === 'cylinder' ? new THREE.CylinderGeometry(x / 2, x / 2, y, 32) :
             new THREE.SphereGeometry(x / 2, 32, 32);
-    model = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.7 }));
+    model = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ 
+        color: 0x94a3b8, 
+        transparent: true, 
+        opacity: 0.7,
+        roughness: 0.5,
+        metalness: 0.2
+    }));
     model.position.set(0, y / 2, 0);
     offsetGroup.add(model);
 
