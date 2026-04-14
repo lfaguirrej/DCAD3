@@ -174,15 +174,26 @@ function init() {
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0f172a);
 
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000);
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
         camera.position.set(5, 5, 5);
 
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true });
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer = new THREE.WebGLRenderer({ 
+            antialias: true, 
+            alpha: true, 
+            logarithmicDepthBuffer: false,
+            powerPreference: 'high-performance'
+        });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x0f172a, 1);
         renderer.xr.enabled = true;
-        renderer.outputColorSpace = THREE.SRGBColorSpace; // Modern color handling
+        renderer.outputColorSpace = THREE.SRGBColorSpace; 
         container.appendChild(renderer.domElement);
+
+        // Forzar un primer ajuste de tamaño para evitar proyecciones planas/deformadas en el arranque
+        onWindowResize();
+        setTimeout(onWindowResize, 500); // Re-ajuste de seguridad para móviles
+        setTimeout(onWindowResize, 1000); // Segundo re-ajuste para estabilidad total en Vercel
 
         // AR Setup
         const arButton = ARButton.createButton(renderer, {
@@ -200,14 +211,23 @@ function init() {
         // Lights
         scene.add(new THREE.AmbientLight(0xffffff, 0.8));
         scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.0));
-        
+
         const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
         dirLight.position.set(10, 20, 10);
         scene.add(dirLight);
 
-        const pointLight = new THREE.PointLight(0xffffff, 1);
+        const pointLight = new THREE.PointLight(0xffffff, 1.5);
         pointLight.position.set(-10, -10, -10);
         scene.add(pointLight);
+
+        // Luz que sigue a la cámara para asegurar iluminación frontal (mejora profundidad)
+        const cameraLight = new THREE.PointLight(0xffffff, 1);
+        camera.add(cameraLight);
+        scene.add(camera);
+
+        // Ayuda visual: Rejilla para referencia de escala y posición
+        const grid = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
+        scene.add(grid);
 
         // Controls
         controls = new OrbitControls(camera, renderer.domElement);
@@ -277,7 +297,7 @@ function init() {
     // Shading toggle (Synced)
     const shadeMove = document.getElementById('shading-toggle-move');
     const shadeRotate = document.getElementById('shading-toggle-rotate');
-    
+
     const syncShading = (checked) => {
         if (model) model.visible = checked;
         if (shadeMove) shadeMove.checked = checked;
@@ -438,15 +458,15 @@ function restoreModelAlignment(url) {
 
 function cleanupSession() {
     screenLog('Limpiando estado de interfaz...');
-    
+
     // Limpiar clases de estado AR/UI
     document.body.classList.remove('ar-active');
     document.documentElement.classList.remove('ar-active');
-    
+
     if (uiContainer) {
         uiContainer.classList.remove('ar-mode', 'ui-minimized');
         // Asegurarse de que si el panel estaba abierto en AR, conserve su estado o sea visible
-        uiContainer.style.display = ''; 
+        uiContainer.style.display = '';
         uiContainer.style.visibility = '';
         uiContainer.style.opacity = '';
     }
@@ -504,6 +524,7 @@ function loadModel(url) {
                 model.traverse(c => {
                     if (c.isMesh) {
                         c.material.side = THREE.DoubleSide;
+                        c.visible = true;
                         c.frustumCulled = false;
                     }
                 });
@@ -540,11 +561,11 @@ function loadModel(url) {
                     }
 
                     screenLog('✅ GLB Listo');
-                    
+
                     // Sincronizar visibilidad con el toggle de la UI
                     const shadeToggle = document.getElementById('shading-toggle-move');
                     if (shadeToggle) syncShading(shadeToggle.checked);
-                    
+
                     resolve();
                 }, 100);
             } catch (e) {
@@ -603,15 +624,22 @@ function loadIFC(url) {
                     model.traverse(c => {
                         if (c.isMesh) {
                             meshCount++;
+                            // Usar MeshStandardMaterial opaco para máxima solidez y percepción de profundidad en 3D
                             c.material = new THREE.MeshStandardMaterial({ 
-                                color: 0x94a3b8, 
+                                color: 0x94a3b8, // Gris azulado
                                 side: THREE.DoubleSide,
+                                transparent: false, // Opaque es mejor para percibir profundidad de sólidos
                                 roughness: 0.5,
                                 metalness: 0.2
                             });
+                            c.material.depthWrite = true;
+                            c.material.depthTest = true;
+                            c.visible = true;
                             c.frustumCulled = false;
                         }
                     });
+
+                    screenLog(`Meshes encontrados: ${meshCount}`);
 
                     if (meshCount === 0) {
                         screenLog('⚠️ Modelo sin geometría visible', true);
@@ -716,9 +744,9 @@ function generateShape(type, x_cm, y_cm, z_cm) {
     let geo = type === 'box' ? new THREE.BoxGeometry(x, y, z) :
         type === 'cylinder' ? new THREE.CylinderGeometry(x / 2, x / 2, y, 32) :
             new THREE.SphereGeometry(x / 2, 32, 32);
-    model = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ 
-        color: 0x94a3b8, 
-        transparent: true, 
+    model = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+        color: 0x94a3b8,
+        transparent: true,
         opacity: 0.7,
         roughness: 0.5,
         metalness: 0.2
