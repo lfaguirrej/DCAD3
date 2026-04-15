@@ -142,7 +142,7 @@ function init() {
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0f172a);
 
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 2000);
         camera.position.set(5, 5, 5);
 
         renderer = new THREE.WebGLRenderer({ 
@@ -175,10 +175,10 @@ function init() {
 
         document.body.appendChild(arButton);
 
-        // Lights — Ambient reducido para que las sombras proporcionen profundidad 3D.
-        // Un ambient muy alto (>0.6) aplana todos los sólidos en móviles.
-        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-        scene.add(new THREE.HemisphereLight(0xffffff, 0x334466, 0.6));
+        // Luces: ambient 0.7 asegura que el sólido sea visible en cualquier GPU móvil.
+        // No reducir más de 0.6 o el sólido se confunde con el fondo oscuro.
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x334466, 0.8));
 
         const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
         dirLight.position.set(10, 20, 10);
@@ -662,8 +662,13 @@ function loadIFC(url) {
                             }
                         }
 
+                        // Forzar visibilidad del sólido explícitamente.
+                        // En móvil Vercel, shadeToggle.checked puede ser false si el panel
+                        // no está abierto al cargar, haciendo el modelo invisible.
+                        model.visible = true;
+                        model.traverse(c => { if (c.isMesh) c.visible = true; });
                         const shadeToggle = document.getElementById('shading-toggle-move');
-                        if (shadeToggle) syncShading(shadeToggle.checked);
+                        if (shadeToggle) shadeToggle.checked = true;
 
                         resolve();
                     }, 0);
