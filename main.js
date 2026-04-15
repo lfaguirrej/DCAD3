@@ -158,10 +158,16 @@ function init() {
         renderer.outputColorSpace = THREE.SRGBColorSpace; 
         container.appendChild(renderer.domElement);
 
-        // Forzar un primer ajuste de tamaño para evitar proyecciones planas/deformadas en el arranque
+        // Forzar un primer ajuste de tamaño
         onWindowResize();
-        setTimeout(onWindowResize, 500); // Re-ajuste de seguridad para móviles
-        setTimeout(onWindowResize, 1000); // Segundo re-ajuste para estabilidad total en Vercel
+        // En móvil el viewport cambia cuando el browser oculta la barra de navegación.
+        // Esperamos 500ms y 1500ms para recalcular aspect Y reposicionar el modelo.
+        setTimeout(onWindowResize, 500);
+        setTimeout(onWindowResize, 1500);
+        // visualViewport API: reajusta en tiempo real cuando cambia la barra del browser
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', onWindowResize);
+        }
 
         // AR Setup
         const arButton = ARButton.createButton(renderer, {
@@ -176,9 +182,10 @@ function init() {
 
         document.body.appendChild(arButton);
 
-        // Lights
-        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-        scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.0));
+        // Lights — Ambient reducido para que las sombras proporcionen profundidad 3D.
+        // Un ambient muy alto (>0.6) aplana todos los sólidos en móviles.
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x334466, 0.6));
 
         const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
         dirLight.position.set(10, 20, 10);
@@ -718,20 +725,27 @@ function fitCameraToObject(obj) {
     // lo que hace que Box3 mida en mm en vez de metros → cámara 1000x alejada.
     scene.updateMatrixWorld(true);
 
+    // Recalcular aspect con el viewport real (visualViewport es más preciso en móvil)
+    const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    camera.aspect = vw / vh;
+    camera.updateProjectionMatrix();
+    renderer.setSize(vw, vh);
+
     const box = new THREE.Box3().setFromObject(obj);
     if (box.isEmpty()) return;
 
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
 
-    // Usar la dimensión máxima (no la diagonal) con cálculo propio del FOV.
-    // Esto garantiza que el modelo llena la vista igual en cualquier entorno.
+    // Usar la dimensión máxima con cálculo propio del FOV: consistente en todos los entornos
     const maxDim = Math.max(size.x, size.y, size.z);
     const fovRad = camera.fov * (Math.PI / 180);
-    // Distancia mínima para que el modelo quepa en la vista + 50% de margen
-    const cameraDistance = (maxDim / 2) / Math.tan(fovRad / 2) * 1.5;
+    // Cuenta el aspect ratio: en portrait (móvil) la altura disponible es menor
+    const aspectFactor = Math.min(1, camera.aspect);
+    const cameraDistance = (maxDim / 2) / (Math.tan(fovRad / 2) * aspectFactor) * 1.4;
 
-    // Ángulo diagonal para buena perspectiva 3D
+    // Ángulo diagonal para buena perspectiva 3D (igual en móvil y escritorio)
     const direction = new THREE.Vector3(1, 0.8, 1).normalize();
     camera.position.copy(center).addScaledVector(direction, cameraDistance);
     camera.lookAt(center);
@@ -1067,9 +1081,17 @@ function calculateAlignment() {
 }
 
 function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    camera.aspect = vw / vh;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(vw, vh);
+
+    // En móvil, cuando el viewport cambia (barra del browser se oculta/muestra),
+    // reposicionar la cámara al modelo para que no quede descentrado ni muy pequeño.
+    if (window.visualViewport && model) {
+        fitCameraToObject(offsetGroup);
+    }
 }
 
 function animate() { renderer.setAnimationLoop(render); }
