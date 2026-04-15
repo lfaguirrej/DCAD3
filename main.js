@@ -713,10 +713,27 @@ async function handleUpload(e) {
 }
 
 function fitCameraToObject(obj) {
+    // CRÍTICO: Forzar actualización completa de matrices antes de medir.
+    // En Vercel, el offsetGroup puede tener scale(0.001) sin propagar aún,
+    // lo que hace que Box3 mida en mm en vez de metros → cámara 1000x alejada.
+    scene.updateMatrixWorld(true);
+
     const box = new THREE.Box3().setFromObject(obj);
+    if (box.isEmpty()) return;
+
     const center = box.getCenter(new THREE.Vector3());
-    const dist = box.getSize(new THREE.Vector3()).length() || 5;
-    camera.position.set(center.x + dist, center.y + dist, center.z + dist);
+    const size = box.getSize(new THREE.Vector3());
+
+    // Usar la dimensión máxima (no la diagonal) con cálculo propio del FOV.
+    // Esto garantiza que el modelo llena la vista igual en cualquier entorno.
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fovRad = camera.fov * (Math.PI / 180);
+    // Distancia mínima para que el modelo quepa en la vista + 50% de margen
+    const cameraDistance = (maxDim / 2) / Math.tan(fovRad / 2) * 1.5;
+
+    // Ángulo diagonal para buena perspectiva 3D
+    const direction = new THREE.Vector3(1, 0.8, 1).normalize();
+    camera.position.copy(center).addScaledVector(direction, cameraDistance);
     camera.lookAt(center);
     if (controls) { controls.target.copy(center); controls.update(); }
 }
