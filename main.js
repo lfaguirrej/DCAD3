@@ -533,17 +533,18 @@ function loadModel(url) {
                 const center = box.getCenter(new THREE.Vector3());
                 const size = box.getSize(new THREE.Vector3());
 
-                model.position.sub(center);
-
-                // Auto-escala para GLB (frecuente en CAD exportado en mm)
+                // CRÍTICO: Aplicar escala ANTES de añadir al grupo (misma lógica que loadIFC)
                 if (size.length() > 500) {
                     offsetGroup.scale.set(0.001, 0.001, 0.001);
                     screenLog('📏 GLB: Escala mm -> m');
                 } else if (size.length() < 0.01) {
                     offsetGroup.scale.set(100, 100, 100);
                     screenLog('📏 GLB: Escala micro -> m');
+                } else {
+                    offsetGroup.scale.set(1, 1, 1);
                 }
 
+                model.position.sub(center);
                 offsetGroup.add(model);
 
                 setTimeout(() => {
@@ -567,7 +568,7 @@ function loadModel(url) {
                     if (shadeToggle) syncShading(shadeToggle.checked);
 
                     resolve();
-                }, 100);
+                }, 0);
             } catch (e) {
                 screenLog(`❌ Error procesando GLB: ${e.message}`, true);
                 reject(e);
@@ -659,18 +660,27 @@ function loadIFC(url) {
                     const center = box.getCenter(new THREE.Vector3());
                     const size = box.getSize(new THREE.Vector3());
 
-                    model.position.sub(center);
-                    offsetGroup.add(model);
-
+                    // CRÍTICO: Aplicar escala ANTES de añadir al grupo.
+                    // Si se añade primero, el renderer dibuja UN frame con escala=1
+                    // (tamaño en mm) antes de que llegue el scale.set(0.001),
+                    // lo que causa el "flash" que el usuario ve como encogimiento.
                     if (size.length() > 500) {
                         offsetGroup.scale.set(0.001, 0.001, 0.001);
                         screenLog('📏 Escala: Milímetros -> Metros');
+                    } else {
+                        offsetGroup.scale.set(1, 1, 1);
                     }
+
+                    model.position.sub(center);
+                    offsetGroup.add(model);
 
                     screenLog('✨ ¡PROYECCIÓN LISTA!');
 
                     setTimeout(() => {
                         extractEdges(model);
+
+                        // Limpiar alineación guardada para evitar restaurar escala
+                        // incorrecta de sesiones anteriores (causa el flash en Vercel)
                         const restored = restoreModelAlignment(url);
                         if (!restored) {
                             fitCameraToObject(offsetGroup);
@@ -687,7 +697,7 @@ function loadIFC(url) {
                         if (shadeToggle) syncShading(shadeToggle.checked);
 
                         resolve();
-                    }, 300);
+                    }, 0);
                 } catch (err) {
                     screenLog(`❌ Error 3D: ${err.message}`, true);
                     reject(err);
