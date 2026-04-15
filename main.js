@@ -158,16 +158,9 @@ function init() {
         renderer.outputColorSpace = THREE.SRGBColorSpace; 
         container.appendChild(renderer.domElement);
 
-        // Forzar un primer ajuste de tamaño
+        // Ajuste inicial de tamaño (suficiente; onWindowResize solo actualiza aspect+size)
         onWindowResize();
-        // En móvil el viewport cambia cuando el browser oculta la barra de navegación.
-        // Esperamos 500ms y 1500ms para recalcular aspect Y reposicionar el modelo.
-        setTimeout(onWindowResize, 500);
-        setTimeout(onWindowResize, 1500);
-        // visualViewport API: reajusta en tiempo real cuando cambia la barra del browser
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', onWindowResize);
-        }
+        setTimeout(onWindowResize, 600);
 
         // AR Setup
         const arButton = ARButton.createButton(renderer, {
@@ -508,18 +501,21 @@ function loadModel(url) {
                 const center = box.getCenter(new THREE.Vector3());
                 const size = box.getSize(new THREE.Vector3());
 
-                // CRÍTICO: Aplicar escala ANTES de añadir al grupo (misma lógica que loadIFC)
+                // Escalar el MODELO (no el offsetGroup) para evitar bugs de propagación
+                // de matrices en Vercel. offsetGroup.scale queda siempre en (1,1,1).
                 if (size.length() > 500) {
-                    offsetGroup.scale.set(0.001, 0.001, 0.001);
+                    model.scale.set(0.001, 0.001, 0.001);
+                    model.position.set(-center.x * 0.001, -center.y * 0.001, -center.z * 0.001);
                     screenLog('📏 GLB: Escala mm -> m');
                 } else if (size.length() < 0.01) {
-                    offsetGroup.scale.set(100, 100, 100);
+                    model.scale.set(100, 100, 100);
+                    model.position.set(-center.x * 100, -center.y * 100, -center.z * 100);
                     screenLog('📏 GLB: Escala micro -> m');
                 } else {
-                    offsetGroup.scale.set(1, 1, 1);
+                    model.scale.set(1, 1, 1);
+                    model.position.sub(center);
                 }
-
-                model.position.sub(center);
+                offsetGroup.scale.set(1, 1, 1);
                 offsetGroup.add(model);
 
                 setTimeout(() => {
@@ -528,8 +524,9 @@ function loadModel(url) {
                     const restored = restoreModelAlignment(url);
                     if (!restored) {
                         fitCameraToObject(offsetGroup);
+                        // Segundo ajuste diferido para móvil (viewport puede cambiar al cargar)
+                        setTimeout(() => { if (!renderer.xr.isPresenting) fitCameraToObject(offsetGroup); }, 800);
 
-                        // Si estamos en AR, ponerlo frente al usuario
                         if (renderer.xr.isPresenting && reticle.visible) {
                             pivotGroup.position.setFromMatrixPosition(reticle.matrix);
                             pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
@@ -538,7 +535,6 @@ function loadModel(url) {
 
                     screenLog('✅ GLB Listo');
 
-                    // Sincronizar visibilidad con el toggle de la UI
                     const shadeToggle = document.getElementById('shading-toggle-move');
                     if (shadeToggle) syncShading(shadeToggle.checked);
 
@@ -635,18 +631,18 @@ function loadIFC(url) {
                     const center = box.getCenter(new THREE.Vector3());
                     const size = box.getSize(new THREE.Vector3());
 
-                    // CRÍTICO: Aplicar escala ANTES de añadir al grupo.
-                    // Si se añade primero, el renderer dibuja UN frame con escala=1
-                    // (tamaño en mm) antes de que llegue el scale.set(0.001),
-                    // lo que causa el "flash" que el usuario ve como encogimiento.
+                    // FIX DEFINITIVO: Escalar el MODELO, no el offsetGroup.
+                    // offsetGroup.scale siempre (1,1,1) → sin bugs de propagación de matrices.
+                    // La posición se convierte a metros para que el centro quede en el origen.
                     if (size.length() > 500) {
-                        offsetGroup.scale.set(0.001, 0.001, 0.001);
-                        screenLog('📏 Escala: Milímetros -> Metros');
+                        model.scale.set(0.001, 0.001, 0.001);
+                        model.position.set(-center.x * 0.001, -center.y * 0.001, -center.z * 0.001);
+                        screenLog('📏 IFC: mm → m');
                     } else {
-                        offsetGroup.scale.set(1, 1, 1);
+                        model.scale.set(1, 1, 1);
+                        model.position.sub(center);
                     }
-
-                    model.position.sub(center);
+                    offsetGroup.scale.set(1, 1, 1);
                     offsetGroup.add(model);
 
                     screenLog('✨ ¡PROYECCIÓN LISTA!');
@@ -654,20 +650,18 @@ function loadIFC(url) {
                     setTimeout(() => {
                         extractEdges(model);
 
-                        // Limpiar alineación guardada para evitar restaurar escala
-                        // incorrecta de sesiones anteriores (causa el flash en Vercel)
                         const restored = restoreModelAlignment(url);
                         if (!restored) {
                             fitCameraToObject(offsetGroup);
+                            // Segundo ajuste diferido para móvil
+                            setTimeout(() => { if (!renderer.xr.isPresenting) fitCameraToObject(offsetGroup); }, 800);
 
-                            // Si estamos en AR, ponerlo frente al usuario
                             if (renderer.xr.isPresenting && reticle.visible) {
                                 pivotGroup.position.setFromMatrixPosition(reticle.matrix);
                                 pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
                             }
                         }
 
-                        // Sincronizar visibilidad con el toggle de la UI
                         const shadeToggle = document.getElementById('shading-toggle-move');
                         if (shadeToggle) syncShading(shadeToggle.checked);
 
@@ -720,17 +714,9 @@ async function handleUpload(e) {
 }
 
 function fitCameraToObject(obj) {
-    // CRÍTICO: Forzar actualización completa de matrices antes de medir.
-    // En Vercel, el offsetGroup puede tener scale(0.001) sin propagar aún,
-    // lo que hace que Box3 mida en mm en vez de metros → cámara 1000x alejada.
+    // Forzar matrices antes de medir. Con model.scale (no offsetGroup.scale)
+    // esto ya no es crítico, pero se mantiene como buena práctica.
     scene.updateMatrixWorld(true);
-
-    // Recalcular aspect con el viewport real (visualViewport es más preciso en móvil)
-    const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
-    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    camera.aspect = vw / vh;
-    camera.updateProjectionMatrix();
-    renderer.setSize(vw, vh);
 
     const box = new THREE.Box3().setFromObject(obj);
     if (box.isEmpty()) return;
@@ -738,15 +724,14 @@ function fitCameraToObject(obj) {
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
 
-    // Usar la dimensión máxima con cálculo propio del FOV: consistente en todos los entornos
+    // Distancia basada en FOV vertical. Multiplicador 2.2 garantiza
+    // que el modelo quepa con margen en portrait (móvil) y landscape (PC).
     const maxDim = Math.max(size.x, size.y, size.z);
     const fovRad = camera.fov * (Math.PI / 180);
-    // Cuenta el aspect ratio: en portrait (móvil) la altura disponible es menor
-    const aspectFactor = Math.min(1, camera.aspect);
-    const cameraDistance = (maxDim / 2) / (Math.tan(fovRad / 2) * aspectFactor) * 1.4;
+    const cameraDistance = (maxDim / 2) / Math.tan(fovRad / 2) * 2.2;
 
-    // Ángulo diagonal para buena perspectiva 3D (igual en móvil y escritorio)
-    const direction = new THREE.Vector3(1, 0.8, 1).normalize();
+    // Ángulo: elevación moderada (0.6) para perspectiva 3D sin verse demasiado plano
+    const direction = new THREE.Vector3(1, 0.6, 1).normalize();
     camera.position.copy(center).addScaledVector(direction, cameraDistance);
     camera.lookAt(center);
     if (controls) { controls.target.copy(center); controls.update(); }
@@ -1081,17 +1066,9 @@ function calculateAlignment() {
 }
 
 function onWindowResize() {
-    const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
-    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    camera.aspect = vw / vh;
+    camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(vw, vh);
-
-    // En móvil, cuando el viewport cambia (barra del browser se oculta/muestra),
-    // reposicionar la cámara al modelo para que no quede descentrado ni muy pequeño.
-    if (window.visualViewport && model) {
-        fitCameraToObject(offsetGroup);
-    }
+    renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 function animate() { renderer.setAnimationLoop(render); }
