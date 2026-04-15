@@ -74,30 +74,6 @@ function init() {
         };
     });
 
-    // Toggle Menu (Mobile)
-    const menuToggle = document.getElementById('menu-toggle');
-    if (menuToggle && uiContainer) {
-        let lastToggleTime = 0;
-        const toggleMenu = (e) => {
-            if (e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            // Guard against duplicate events (touch + click)
-            if (Date.now() - lastToggleTime < 300) return;
-            lastToggleTime = Date.now();
-
-            uiContainer.classList.toggle('active');
-            const isActive = uiContainer.classList.contains('active');
-            menuToggle.innerHTML = isActive ? '✕' : '☰';
-            screenLog(isActive ? 'Panel abierto' : 'Panel cerrado');
-        };
-
-        menuToggle.onclick = toggleMenu;
-        menuToggle.ontouchstart = (e) => {
-            toggleMenu(e);
-        };
-    }
 
     // Unified Bottom Bar Controls (Panel | AR | Refresh)
     const btnQuickPanel = document.getElementById('quick-panel-btn');
@@ -160,14 +136,6 @@ function init() {
         };
     }
 
-    // Refresh Button
-    const refreshBtn = document.getElementById('refresh-btn');
-    if (refreshBtn) {
-        refreshBtn.onclick = () => {
-            screenLog('🔄 Recargando aplicación...');
-            setTimeout(() => window.location.reload(), 300);
-        };
-    }
 
     // --- 2. Inicialización Three.js ---
     try {
