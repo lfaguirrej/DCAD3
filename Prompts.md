@@ -1,3 +1,10 @@
+En mover pon el texto de "m" después del valor del paso que edita el usuario
+
+
+
+Al entrar en el modo AR en un iphone no se están viendo los botones generales de Panel, Salir AR y Actualizar
+
+
 La intención era que así como Ajuste es una sección Mover sea otra y Rotar sea otra, no que Mover y Rotar esten en todas las secciones
 
 X+, Y+, Z+ deben estar en una fila y X-, Y-, Z- deben estar en otra fila

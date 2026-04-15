@@ -18,6 +18,7 @@ Escribe: npx localtunnel --port 5173 --subdomain unal-dcad-ar4
 Para saber la ip digita:
 curl.exe ifconfig.me
 En Tunja es 181.234.182.214
+En Bogota es 190.24.106.210
 
 3. Conexión desde el Celular
 Abre el navegador en tu celular (o WebXR Viewer si es iPhone).

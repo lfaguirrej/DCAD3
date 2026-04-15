@@ -582,25 +582,34 @@ function loadModel(url) {
 function extractEdges(source) {
     if (!source) return;
     try {
+        // Forzar actualización global de matrices ANTES de leer matrixWorld.
+        // Esto evita que en Vercel (mayor latencia de CDN) los edges se calculen
+        // con matrices desactualizadas que no reflejan la escala del offsetGroup.
+        scene.updateMatrixWorld(true);
+
         const mat = new THREE.LineBasicMaterial({ color: 0x00ff00 });
         edges = new THREE.Group();
+
+        // Usamos la inversa del offsetGroup (no de source.matrixWorld) para que
+        // los bordes queden en el mismo espacio local que el sólido, independiente
+        // del timing de actualización de matrices.
+        const offsetGroupInverse = new THREE.Matrix4().copy(offsetGroup.matrixWorld).invert();
 
         source.traverse(c => {
             if (c.isMesh) {
                 const geo = new THREE.EdgesGeometry(c.geometry);
                 const l = new THREE.LineSegments(geo, mat);
 
-                // Calculamos la matriz relativa al root del modelo para alineación perfecta
-                c.updateWorldMatrix(true, false);
-                const relativeMatrix = source.matrixWorld.clone().invert().multiply(c.matrixWorld);
+                // Matriz relativa al offsetGroup: convierte del espacio world al espacio del grupo
+                const relativeMatrix = offsetGroupInverse.clone().multiply(c.matrixWorld);
                 l.applyMatrix4(relativeMatrix);
 
                 edges.add(l);
             }
         });
 
-        // Los bordes deben seguir el mismo desplazamiento que el modelo sólido
-        edges.position.copy(source.position);
+        // Los bordes se añaden directamente al offsetGroup sin copiar posición adicional,
+        // porque la matriz ya incluye el desplazamiento del modelo (model.position.sub(center))
         offsetGroup.add(edges);
         screenLog('🧩 Bordes alineados');
     } catch (e) {
