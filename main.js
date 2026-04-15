@@ -719,8 +719,6 @@ async function handleUpload(e) {
 }
 
 function fitCameraToObject(obj) {
-    // Forzar matrices antes de medir. Con model.scale (no offsetGroup.scale)
-    // esto ya no es crítico, pero se mantiene como buena práctica.
     scene.updateMatrixWorld(true);
 
     const box = new THREE.Box3().setFromObject(obj);
@@ -728,15 +726,17 @@ function fitCameraToObject(obj) {
 
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
-
-    // Distancia basada en FOV vertical. Multiplicador 2.2 garantiza
-    // que el modelo quepa con margen en portrait (móvil) y landscape (PC).
     const maxDim = Math.max(size.x, size.y, size.z);
     const fovRad = camera.fov * (Math.PI / 180);
-    const cameraDistance = (maxDim / 2) / Math.tan(fovRad / 2) * 2.2;
 
-    // Ángulo: elevación moderada (0.6) para perspectiva 3D sin verse demasiado plano
-    const direction = new THREE.Vector3(1, 0.6, 1).normalize();
+    // En portrait (móvil vertical), el FOV horizontal es más estrecho que el vertical.
+    // Hay que usar el FOV horizontal efectivo para que el modelo llene la pantalla.
+    // aspectCorrection < 1 en portrait → cámara más cerca proporcionalmente.
+    const aspectCorrection = Math.min(camera.aspect, 1.0);
+    const cameraDistance = (maxDim / 2) / (Math.tan(fovRad / 2) * aspectCorrection) * 1.2;
+
+    // Elevación 0.5: vista diagonal que muestra profundidad 3D sin exageración
+    const direction = new THREE.Vector3(1, 0.5, 1).normalize();
     camera.position.copy(center).addScaledVector(direction, cameraDistance);
     camera.lookAt(center);
     if (controls) { controls.target.copy(center); controls.update(); }
