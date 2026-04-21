@@ -44,7 +44,7 @@ window.screenLog = function (msg, isError = false) {
 screenLog('Visor: Iniciando Motor...');
 init();
 
-function init() {
+async function init() {
     const container = document.getElementById('canvas-container');
     uiContainer = document.getElementById('ui-container');
 
@@ -179,12 +179,27 @@ function init() {
         onWindowResize();
         setTimeout(onWindowResize, 600);
 
-        // AR Setup
-        const arButton = ARButton.createButton(renderer, {
+        // AR Setup con Image Tracking (Experimental)
+        let arOptions = {
             requiredFeatures: ['hit-test'],
-            optionalFeatures: ['dom-overlay'],
+            optionalFeatures: ['dom-overlay', 'image-tracking'],
             domOverlay: { root: document.getElementById('ui-wrapper') }
-        });
+        };
+
+        try {
+            // Intentamos cargar el marcador predefinido
+            const res = await fetch('/marcador-dcad.png');
+            if (res.ok) {
+                const blob = await res.blob();
+                const bitmap = await createImageBitmap(blob);
+                arOptions.trackedImages = [{ image: bitmap, widthInMeters: 0.2 }];
+                screenLog('📷 Marcador AR cargado');
+            }
+        } catch (e) {
+            console.warn('Image Tracking no soportado o marcador ausente');
+        }
+
+        const arButton = ARButton.createButton(renderer, arOptions);
 
         // Forzar asignación del ID en caso que sea el fallback anchor <a href> de iOS
         // para que CSS pueda ocultarlo.
@@ -282,15 +297,18 @@ function init() {
     // Shading toggle (Synced)
     const shadeMove = document.getElementById('shading-toggle-move');
     const shadeRotate = document.getElementById('shading-toggle-rotate');
+    const shadeScale = document.getElementById('shading-toggle-scale');
 
     const syncShading = (checked) => {
         if (model) model.visible = checked;
         if (shadeMove) shadeMove.checked = checked;
         if (shadeRotate) shadeRotate.checked = checked;
+        if (shadeScale) shadeScale.checked = checked;
     };
 
     if (shadeMove) shadeMove.onchange = () => syncShading(shadeMove.checked);
     if (shadeRotate) shadeRotate.onchange = () => syncShading(shadeRotate.checked);
+    if (shadeScale) shadeScale.onchange = () => syncShading(shadeScale.checked);
 
     // Upload
     const uploadBtn = document.getElementById('upload-btn');
@@ -512,10 +530,13 @@ function cleanupSession() {
 function nudgeModel(axis, dir) {
     const moveStepInput = document.getElementById('move-step-input');
     const rotateStepInput = document.getElementById('rotate-step-input');
+    const scaleStepInput = document.getElementById('scale-step-input');
 
     const step = moveStepInput ? parseFloat(moveStepInput.value) : 0.05;
     const rotDeg = rotateStepInput ? parseFloat(rotateStepInput.value) : 5;
     const rotRad = (rotDeg * Math.PI) / 180;
+    const scalePct = scaleStepInput ? parseFloat(scaleStepInput.value) : 10;
+    const scaleFactor = 1 + (scalePct / 100 * dir);
 
     if (axis === 'x') offsetGroup.position.x += step * dir;
     if (axis === 'y') offsetGroup.position.y += step * dir;
@@ -523,6 +544,11 @@ function nudgeModel(axis, dir) {
     if (axis === 'rx') offsetGroup.rotation.x += rotRad * dir;
     if (axis === 'ry') offsetGroup.rotation.y += rotRad * dir;
     if (axis === 'rz') offsetGroup.rotation.z += rotRad * dir;
+    if (axis === 's') {
+        const newScale = pivotGroup.scale.x * scaleFactor;
+        pivotGroup.scale.set(newScale, newScale, newScale);
+        screenLog(`📏 Escala: ${(newScale * 100).toFixed(1)}%`);
+    }
 
     saveModelAlignment(); // Persistir ajuste manual
 }
@@ -1107,6 +1133,24 @@ function calculateAlignment() {
     }
 }
 
+function applyImageAlignment(matrixArray) {
+    const matrix = new THREE.Matrix4().fromArray(matrixArray);
+    
+    // El modelo se posiciona exactamente donde está el marcador
+    pivotGroup.position.setFromMatrixPosition(matrix);
+    pivotGroup.quaternion.setFromRotationMatrix(matrix);
+    pivotGroup.scale.set(1, 1, 1);
+    
+    isAligned = true;
+    saveModelAlignment();
+    
+    // Pequeño feedback sonoro/visual si fuera necesario
+    if (!window.lastAutoLog || Date.now() - window.lastAutoLog > 3000) {
+        screenLog('📸 Auto-Alineación Exitosa');
+        window.lastAutoLog = Date.now();
+    }
+}
+
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -1121,6 +1165,34 @@ function render(t, frame) {
     if (frame) {
         const session = renderer.xr.getSession();
         const refSpace = renderer.xr.getReferenceSpace();
+
+        // --- 1. Detección Automática por Marcador ---
+        if (frame.getTrackedImageResults) {
+            const results = frame.getTrackedImageResults();
+            const statusSpan = document.getElementById('auto-align-status');
+
+            for (const result of results) {
+                if (result.trackingState === 'tracked') {
+                    if (statusSpan) {
+                        statusSpan.textContent = '¡Marcador Detectado!';
+                        statusSpan.style.color = '#4ade80';
+                    }
+                    const pose = frame.getPose(result.imageSpace, refSpace);
+                    if (pose) {
+                        // Solo aplicamos la alineación si el usuario está en la pestaña "Auto"
+                        const autoTab = document.querySelector('.tab-btn[data-tab="tab-auto"]');
+                        if (autoTab && autoTab.classList.contains('active')) {
+                            applyImageAlignment(pose.transform.matrix);
+                        }
+                    }
+                } else {
+                    if (statusSpan) {
+                        statusSpan.textContent = 'Buscando marcador...';
+                        statusSpan.style.color = '#f87171';
+                    }
+                }
+            }
+        }
 
         if (!hitTestSourceRequested) {
             session.requestReferenceSpace('viewer').then(rs => session.requestHitTestSource({ space: rs }).then(s => hitTestSource = s));

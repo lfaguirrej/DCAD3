@@ -33,15 +33,17 @@
             <div id="ui-container">
             <!-- Tab Navigation (Tabs are now secondary or inside panel) -->
             <div class="tabs-nav">
-                <button class="tab-btn active" data-tab="tab-adjust">↔️ Mover</button>
+                <button class="tab-btn active" data-tab="tab-models">📦 Modelos</button>
+                <button class="tab-btn" data-tab="tab-adjust">↔️ Mover</button>
                 <button class="tab-btn" data-tab="tab-rotate">🔄 Rotar</button>
+                <button class="tab-btn" data-tab="tab-scale">📐 Escalar</button>
                 <button class="tab-btn" data-tab="tab-align">📍 Alineación</button>
-                <button class="tab-btn" data-tab="tab-models">📦 Modelos</button>
+                <button class="tab-btn" data-tab="tab-auto">📷 Auto</button>
                 <button class="tab-btn" data-tab="tab-console">💾</button>
             </div>
 
             <!-- Tab Contents -->
-            <div id="tab-adjust" class="tab-panel active">
+            <div id="tab-adjust" class="tab-panel">
                 <div class="glass adjustment-panel" id="adj-panel">
                     <div class="panel-header" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
                         <h2 style="margin: 0; font-size: 0.9rem;">Posición</h2>
@@ -119,6 +121,34 @@
                 </div>
             </div>
 
+            <div id="tab-scale" class="tab-panel">
+                <div class="glass adjustment-panel">
+                    <div class="panel-header" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                        <h2 style="margin: 0; font-size: 0.9rem;">Escala</h2>
+                        <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.2); padding: 3px 6px 3px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                            <span style="font-size: 0.8rem;">📐</span>
+                            <div style="display: flex; align-items: center;">
+                                <input type="number" id="scale-step-input" value="10" step="1" onfocus="this.select()"
+                                    style="width: 25px; padding: 0; text-align: right; background: transparent; border: none; font-weight: 700; color: white; -webkit-appearance: none; margin: 0; font-size: 0.85rem;">
+                                <span style="font-size: 0.85rem; font-weight: 700; color: white; margin-left: -2px;">%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="control-row" style="flex-direction: row; justify-content: center; gap: 15px; padding: 5px 0;">
+                        <button class="nudge-btn scale-btn" data-axis="s" data-dir="-1" style="width: 45px; height: 45px; font-size: 1.1rem; border-radius: 12px;">➖</button>
+                        <button class="nudge-btn scale-btn" data-axis="s" data-dir="1" style="width: 45px; height: 45px; font-size: 1.1rem; border-radius: 12px;">➕</button>
+                    </div>
+                    <div class="control-row"
+                        style="margin-top: 10px; flex-direction: row; justify-content: space-between; align-items: center;">
+                        <span>Sólido:</span>
+                        <label class="switch">
+                            <input type="checkbox" id="shading-toggle-scale" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
             <div id="tab-align" class="tab-panel">
                 <div class="glass adjustment-panel">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
@@ -155,7 +185,22 @@
                 </div>
             </div>
 
-            <div id="tab-models" class="tab-panel">
+            <div id="tab-auto" class="tab-panel">
+                <div class="glass adjustment-panel">
+                    <h2 style="color: #4ade80; font-size: 1rem;">📷 Auto-Alineación</h2>
+                    <p style="font-size: 0.8rem; margin: 5px 0 15px 0;">Enfoque el marcador impreso para posicionar el modelo automáticamente.</p>
+                    
+                    <div style="background: white; padding: 10px; border-radius: 12px; display: flex; justify-content: center;">
+                        <img id="marker-preview" src="/marcador-dcad.png" style="width: 120px; height: 120px; object-fit: contain;" alt="Marcador">
+                    </div>
+                    
+                    <div style="margin-top: 15px; font-size: 0.75rem; color: #94a3b8; text-align: center;">
+                        Estado: <span id="auto-align-status" style="color: #ef4444;">Buscando marcador...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-models" class="tab-panel active">
                 <div class="glass examples-panel">
                     <h2>Modelos Cargados</h2>
                     <div id="loaded-models-list" class="model-list">
