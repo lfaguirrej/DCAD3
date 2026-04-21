@@ -303,6 +303,16 @@ function init() {
     // --- 4. Handlers de Alineación ---
     setupAlignmentHandlers();
 
+    const purgeBtn = document.getElementById('btn-purge-storage');
+    if (purgeBtn) {
+        purgeBtn.onclick = () => {
+            if (confirm('¿Borrar toda la memoria de alineaciones y escalas? La app se reiniciará.')) {
+                localStorage.clear();
+                window.location.reload();
+            }
+        };
+    }
+
     initModelList();
     window.addEventListener('resize', onWindowResize);
     animate();
@@ -1135,9 +1145,12 @@ function render(t, frame) {
 
                         screenLog("📍 Fijando posición...");
 
-                        // Posicionamiento normal
+                        // Posicionamiento normal: Forzamos escala 1:1 para que midan lo que deben (en metros)
+                        pivotGroup.scale.set(1, 1, 1);
                         pivotGroup.position.setFromMatrixPosition(reticle.matrix);
                         pivotGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().extractRotation(reticle.matrix));
+                        
+                        saveModelAlignment(); // Persistir la nueva posición base
 
                         // Opcional: Intentar usar Anchors si el navegador lo soporta para mayor estabilidad
                         if (frame.createAnchor) {
