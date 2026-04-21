@@ -40,24 +40,7 @@ window.screenLog = function (msg, isError = false) {
     }
 };
 
-// --- Inicialización Directa (Módulos de Vite ya se ejecutan tras cargar el DOM) ---
-screenLog('Visor: Iniciando...');
-
-// Captura de errores global para diagnóstico en móvil
-window.onerror = function(msg, url, lineNo, columnNo, error) {
-    const errorMsg = `Error: ${msg} [${lineNo}:${columnNo}]`;
-    console.error(errorMsg);
-    if (window.screenLog) screenLog(errorMsg, true);
-    else alert(errorMsg);
-    return false;
-};
-
-// Pequeño indicador de JS activo para depuración rápida
-const jsIndicator = document.createElement('div');
-jsIndicator.style.cssText = 'position:fixed; top:2px; right:2px; font-size:8px; color:rgba(0,255,0,0.5); z-index:99999; pointer-events:none;';
-jsIndicator.textContent = 'JS-OK';
-document.body.appendChild(jsIndicator);
-
+// --- Inicialización Directa ---
 init();
 
 function init() {
@@ -96,23 +79,28 @@ function init() {
     const btnArExit = document.getElementById('ar-exit-btn');
     const btnRefresh = document.getElementById('refresh-btn-unified');
 
-    // Funcción auxiliar para asignar eventos de clic y toque
+    // Funcción auxiliar para asignar eventos de clic y toque sin doble disparo
     const setUnifiedHandler = (btn, handler) => {
         if (!btn) return;
         
-        // Evento de clic estándar
+        let lastTrigger = 0;
+        const safeHandler = (e) => {
+            const now = Date.now();
+            if (now - lastTrigger < 250) return; // Bloquear activaciones múltiples en < 250ms
+            lastTrigger = now;
+            handler(e);
+        };
+
+        // Click estándar (Escritorio / Fallback)
         btn.addEventListener('click', (e) => {
             if (e) { e.preventDefault(); e.stopPropagation(); }
-            handler(e);
+            safeHandler(e);
         });
 
-        // Evento táctil para respuesta inmediata en móviles
-        // passive: false permite usar preventDefault
+        // Touch táctil (Móvil - Respuesta inmediata)
         btn.addEventListener('touchstart', (e) => {
             if (e) { e.stopPropagation(); }
-            // Nota: No llamamos preventDefault en touchstart para no bloquear el bubbling al click si fuera necesario,
-            // pero manejamos ambos eventos. Para evitar doble disparo, el handler debería ser reentrante o ignorar duplicados.
-            handler(e);
+            safeHandler(e);
         }, { passive: true });
     };
 
@@ -127,13 +115,13 @@ function init() {
             // Si está abierto, lo minimizamos y escondemos
             uiContainer.classList.remove('active');
             uiContainer.classList.add('ui-minimized');
-            btnQuickPanel.innerHTML = '➕ Abrir Panel';
+            btnQuickPanel.innerHTML = '📂 Abrir Panel';
             screenLog('📉 Panel oculto');
         } else {
             // Si está cerrado, lo mostramos completo
             uiContainer.classList.add('active');
             uiContainer.classList.remove('ui-minimized');
-            btnQuickPanel.innerHTML = '📂 Panel';
+            btnQuickPanel.innerHTML = '➕ Cerrar';
             screenLog('📈 Panel abierto');
         }
     });
@@ -455,6 +443,26 @@ function restoreModelAlignment(url) {
 function cleanupSession() {
     screenLog('Limpiando estado de interfaz...');
 
+    // Resetear posición y rotación del modelo al origen original
+    if (pivotGroup) {
+        pivotGroup.position.set(0, 0, 0);
+        pivotGroup.quaternion.set(0, 0, 0, 1);
+        pivotGroup.scale.set(1, 1, 1);
+    }
+    
+    // También reseteamos el offset manual si se desea volver al estado "virgen"
+    if (offsetGroup) {
+        offsetGroup.position.set(0, 0, 0);
+        offsetGroup.quaternion.set(0, 0, 0, 1);
+    }
+
+    isAligned = false; // Resetear estado de alineación para permitir re-posicionamiento
+    
+    // Resetear banderas de WebXR para permitir reinicio de sesión
+    hitTestSource = null;
+    hitTestSourceRequested = false;
+    if (reticle) reticle.visible = false;
+    
     // Limpiar clases de estado AR/UI
     document.body.classList.remove('ar-active');
     document.documentElement.classList.remove('ar-active');
@@ -486,7 +494,8 @@ function cleanupSession() {
     window.scrollTo(0, 0);
     setTimeout(() => {
         window.dispatchEvent(new Event('resize'));
-    }, 100);
+        if (pivotGroup) fitCameraToObject(pivotGroup);
+    }, 150);
 }
 
 function nudgeModel(axis, dir) {
