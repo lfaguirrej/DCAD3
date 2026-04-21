@@ -38,6 +38,8 @@ body {
   width: 100dvw;
   height: 100vh;
   height: 100dvh;
+  position: relative;
+  overflow: hidden;
 }
 
 .overlay {
@@ -379,6 +381,10 @@ button:hover {
 #canvas-container {
   width: 100%;
   height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1; /* Detrás de la UI */
 }
 
 /* Model List Styles */
@@ -636,7 +642,8 @@ body.ar-active .bottom-controls-bar {
 
 .bottom-controls-bar button, 
 .bottom-controls-bar div {
-  pointer-events: auto; /* Los botones sí captan toques */
+  pointer-events: auto !important; /* Los botones sí captan toques */
+  cursor: pointer;
 }
 
 .ui-action-btn {

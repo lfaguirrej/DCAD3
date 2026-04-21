@@ -25,25 +25,40 @@ let isAligned = false; // Bloquear reposicionamiento automático por toques de p
 let dragTarget = null;
 let controlsWereEnabled = true;
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Definición robusta del logger antes de nada
-    window.screenLog = function (msg, isError = false) {
-        const consoleDiv = document.getElementById('debug-content');
-        if (consoleDiv) {
-            const entry = document.createElement('div');
-            entry.style.color = isError ? '#ff4444' : '#00ff00';
-            entry.style.marginBottom = '4px';
-            entry.style.borderLeft = `3px solid ${isError ? '#ff4444' : '#00ff00'}`;
-            entry.style.paddingLeft = '5px';
-            entry.textContent = `> ${msg}`;
-            consoleDiv.appendChild(entry);
-            consoleDiv.scrollTop = consoleDiv.scrollHeight;
-        }
-    };
+// Definición robusta del logger global
+window.screenLog = function (msg, isError = false) {
+    const consoleDiv = document.getElementById('debug-content');
+    if (consoleDiv) {
+        const entry = document.createElement('div');
+        entry.style.color = isError ? '#ff4444' : '#00ff00';
+        entry.style.marginBottom = '4px';
+        entry.style.borderLeft = `3px solid ${isError ? '#ff4444' : '#00ff00'}`;
+        entry.style.paddingLeft = '5px';
+        entry.textContent = `> ${msg}`;
+        consoleDiv.appendChild(entry);
+        consoleDiv.scrollTop = consoleDiv.scrollHeight;
+    }
+};
 
-    screenLog('Iniciando Aplicación...');
-    init();
-});
+// --- Inicialización Directa (Módulos de Vite ya se ejecutan tras cargar el DOM) ---
+screenLog('Visor: Iniciando...');
+
+// Captura de errores global para diagnóstico en móvil
+window.onerror = function(msg, url, lineNo, columnNo, error) {
+    const errorMsg = `Error: ${msg} [${lineNo}:${columnNo}]`;
+    console.error(errorMsg);
+    if (window.screenLog) screenLog(errorMsg, true);
+    else alert(errorMsg);
+    return false;
+};
+
+// Pequeño indicador de JS activo para depuración rápida
+const jsIndicator = document.createElement('div');
+jsIndicator.style.cssText = 'position:fixed; top:2px; right:2px; font-size:8px; color:rgba(0,255,0,0.5); z-index:99999; pointer-events:none;';
+jsIndicator.textContent = 'JS-OK';
+document.body.appendChild(jsIndicator);
+
+init();
 
 function init() {
     const container = document.getElementById('canvas-container');
@@ -81,60 +96,73 @@ function init() {
     const btnArExit = document.getElementById('ar-exit-btn');
     const btnRefresh = document.getElementById('refresh-btn-unified');
 
+    // Funcción auxiliar para asignar eventos de clic y toque
+    const setUnifiedHandler = (btn, handler) => {
+        if (!btn) return;
+        
+        // Evento de clic estándar
+        btn.addEventListener('click', (e) => {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            handler(e);
+        });
+
+        // Evento táctil para respuesta inmediata en móviles
+        // passive: false permite usar preventDefault
+        btn.addEventListener('touchstart', (e) => {
+            if (e) { e.stopPropagation(); }
+            // Nota: No llamamos preventDefault en touchstart para no bloquear el bubbling al click si fuera necesario,
+            // pero manejamos ambos eventos. Para evitar doble disparo, el handler debería ser reentrante o ignorar duplicados.
+            handler(e);
+        }, { passive: true });
+    };
+
     // Mover el botón flotante de refresco a la barra unificada
-    if (btnRefresh) {
-        btnRefresh.onclick = () => window.location.reload();
-    }
+    setUnifiedHandler(btnRefresh, () => window.location.reload());
 
-    if (btnQuickPanel) {
-        btnQuickPanel.onclick = (e) => {
-            if (e) { e.preventDefault(); e.stopPropagation(); }
+    setUnifiedHandler(btnQuickPanel, (e) => {
+        // Lógica de "Interruptor": Abre o Cierra el panel de controles
+        const isVisible = uiContainer.classList.contains('active') && !uiContainer.classList.contains('ui-minimized');
 
-            // Lógica de "Interruptor": Abre o Cierra el panel de controles
-            const isVisible = uiContainer.classList.contains('active') && !uiContainer.classList.contains('ui-minimized');
+        if (isVisible) {
+            // Si está abierto, lo minimizamos y escondemos
+            uiContainer.classList.remove('active');
+            uiContainer.classList.add('ui-minimized');
+            btnQuickPanel.innerHTML = '➕ Abrir Panel';
+            screenLog('📉 Panel oculto');
+        } else {
+            // Si está cerrado, lo mostramos completo
+            uiContainer.classList.add('active');
+            uiContainer.classList.remove('ui-minimized');
+            btnQuickPanel.innerHTML = '📂 Panel';
+            screenLog('📈 Panel abierto');
+        }
+    });
 
-            if (isVisible) {
-                // Si está abierto, lo minimizamos y escondemos
-                uiContainer.classList.remove('active');
-                uiContainer.classList.add('ui-minimized');
-                btnQuickPanel.textContent = '➕ Abrir Panel';
-                screenLog('📉 Panel oculto');
+    setUnifiedHandler(btnStartAR, (e) => {
+        const realARButton = document.getElementById('ARButton');
+        if (realARButton) {
+            const isNotSupported = realARButton.tagName.toLowerCase() === 'a' || 
+                                 realARButton.textContent.includes('NOT SUPPORTED') || 
+                                 realARButton.textContent.includes('AVAILABLE');
+            
+            if (isNotSupported) {
+                alert('Realidad Aumentada (WebXR) no soportada en este dispositivo o navegador (iOS requiere App compatible o Mozilla WebXR Viewer).');
+                screenLog('⚠️ Error: AR no soportado nativamente en este navegador', true);
             } else {
-                // Si está cerrado, lo mostramos completo
-                uiContainer.classList.add('active');
-                uiContainer.classList.remove('ui-minimized');
-                btnQuickPanel.textContent = '📂 Panel';
-                screenLog('📈 Panel abierto');
+                realARButton.click();
             }
-        };
-    }
+        } else {
+            screenLog('⚠️ Error: AR no disponible en este dispositivo', true);
+            alert('El motor AR aún no se ha iniciado o no está disponible.');
+        }
+    });
 
-    if (btnStartAR) {
-        btnStartAR.onclick = (e) => {
-            if (e) { e.preventDefault(); e.stopPropagation(); }
-            const realARButton = document.getElementById('ARButton');
-            if (realARButton) {
-                if (realARButton.tagName.toLowerCase() === 'a' || realARButton.textContent.includes('NOT SUPPORTED') || realARButton.textContent.includes('AVAILABLE')) {
-                    alert('Realidad Aumentada (WebXR) no soportada en este dispositivo o navegador (iOS requiere App compatible o Mozilla WebXR Viewer).');
-                    screenLog('⚠️ Error: AR no soportado nativamente en este navegador', true);
-                } else {
-                    realARButton.click();
-                }
-            } else {
-                screenLog('⚠️ Error: AR no disponible en este dispositivo', true);
-            }
-        };
-    }
-
-    if (btnArExit) {
-        btnArExit.onclick = (e) => {
-            if (e) { e.preventDefault(); e.stopPropagation(); }
-            const session = renderer.xr.getSession();
-            if (session) {
-                session.end();
-            }
-        };
-    }
+    setUnifiedHandler(btnArExit, (e) => {
+        const session = renderer.xr.getSession();
+        if (session) {
+            session.end();
+        }
+    });
 
 
     // --- 2. Inicialización Three.js ---
