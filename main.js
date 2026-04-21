@@ -41,6 +41,7 @@ window.screenLog = function (msg, isError = false) {
 };
 
 // --- Inicialización Directa ---
+screenLog('Visor: Iniciando Motor...');
 init();
 
 function init() {
@@ -227,10 +228,10 @@ function init() {
 
         // Loaders
         ifcLoader = new IFCLoader();
-        // Usamos archivos locales y desactivamos workers para evitar bloqueos en el móvil
-        ifcLoader.ifcManager.setWasmPath('/');
+        // Usamos ruta relativa vacía para que Vercel encuentre los archivos en la raíz del despliegue 'dist'
+        ifcLoader.ifcManager.setWasmPath(''); 
         ifcLoader.ifcManager.useWebWorkers(false);
-        screenLog('Visor 3D: Motor Local Listo');
+        screenLog('Motor IFC: Configurado');
 
         // --- Eventos de Sesión AR para UI ---
         renderer.xr.addEventListener('sessionstart', () => {
@@ -681,8 +682,9 @@ function loadIFC(url) {
                         const restored = restoreModelAlignment(url);
                         if (!restored) {
                             fitCameraToObject(offsetGroup);
-                            // Segundo ajuste diferido para móvil
-                            setTimeout(() => { if (!renderer.xr.isPresenting) fitCameraToObject(offsetGroup); }, 800);
+                            // Ajustes diferidos para asegurar que el modelo sea visible tras el renderizado de Vercel
+                            setTimeout(() => { if (!renderer.xr.isPresenting) fitCameraToObject(offsetGroup); }, 500);
+                            setTimeout(() => { if (!renderer.xr.isPresenting) fitCameraToObject(offsetGroup); }, 1500);
                         }
 
                         // Forzar visibilidad final con un solo golpe de renderizado
