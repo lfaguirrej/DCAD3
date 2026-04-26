@@ -251,6 +251,11 @@ async function init() {
         // --- Eventos de Sesión AR para UI ---
         renderer.xr.addEventListener('sessionstart', () => {
             screenLog('🚀 Sesión AR Iniciada');
+            
+            // CRITICAL: Para que se vea la realidad en iPhone/Android, el fondo debe ser transparente
+            scene.background = null;
+            renderer.setClearAlpha(0);
+
             document.body.classList.add('ar-active');
             document.documentElement.classList.add('ar-active');
             uiContainer.classList.add('ar-mode');
